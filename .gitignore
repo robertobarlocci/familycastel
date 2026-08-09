@@ -1,0 +1,27 @@
+# Dev dependencies (never shipped — release bundles what it needs)
+/vendor/
+/node_modules/
+
+# Runtime-generated (never in git or release)
+/config/config.php
+/config/installed.lock
+/storage/logs/*
+/storage/cache/*
+/storage/backups/*
+/storage/updates/*
+/storage/uploads/*
+/storage/install-state.json
+/storage/setup-token.txt
+/storage/maintenance.flag
+!/storage/**/.gitkeep
+!/storage/**/.htaccess
+
+# Tooling
+/.claude/cache/
+/.playwright-mcp/
+/e2e/node_modules/
+/e2e/test-results/
+/e2e/playwright-report/
+/build/
+*.local.php
+.DS_Store

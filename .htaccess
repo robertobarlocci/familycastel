@@ -1,0 +1,23 @@
+# Family Castel — Apache configuration (shared-hosting compatible)
+
+Options -Indexes
+
+# Deny direct HTTP access to internal directories (each also ships its own .htaccess)
+RewriteEngine On
+RewriteRule ^(app|config|storage|lang|tests|vendor|docker|scripts|docs)(/|$) - [F,L]
+
+# Deny dot-directories/files (.git, .env, .user.ini, …) and editor/backup leftovers
+RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+
+# Deny sensitive file types anywhere (incl. editor/backup suffixes like foo.php~)
+<FilesMatch "(~|\.(lock|json|dist|sql|log|sh|yml|yaml|md|bak|backup|old|orig|swp|save|ini))$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^(composer\.(json|lock)|phpunit\.xml|VERSION|\.env.*|\.user\.ini)$">
+    Require all denied
+</FilesMatch>
+
+# Front controller routing (relative — works at domain root and in subdirectories)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]

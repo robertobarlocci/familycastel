@@ -1,0 +1,42 @@
+# Dev/demo stack only — production is plain shared hosting (INV-003).
+# Start:  docker compose -f docker/compose.yaml up -d --build
+# App:    http://localhost:8090
+name: familycastel
+
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8090:80"
+    volumes:
+      - ..:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Used by the test suite only; the real app reads config/config.php (installer-written).
+      FC_TEST_DB_HOST: db
+      FC_TEST_DB_PORT: "3306"
+      FC_TEST_DB_NAME: familycastel_test
+      FC_TEST_DB_USER: fc
+      FC_TEST_DB_PASS: fc-dev-password
+
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: root-dev-password
+      MARIADB_DATABASE: familycastel
+      MARIADB_USER: fc
+      MARIADB_PASSWORD: fc-dev-password
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dbdata:
