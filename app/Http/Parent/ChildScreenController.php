@@ -59,6 +59,7 @@ final class ChildScreenController
         try {
             $templates = new TemplateService($this->db);
             $templates->apply((int) ($post['template_id'] ?? 0), $childId, Auth::parentId());
+            (new \FamilyCastel\Domain\AchievementService($this->db, new \FamilyCastel\Domain\NotificationService($this->db)))->sync($childId);
             Session::flash('success', t('award.template_done'));
         } catch (WriteLockedException) {
             Session::flash('error', t('common.maintenance'));
@@ -116,6 +117,7 @@ final class ChildScreenController
                     ]);
                 }
             });
+            (new \FamilyCastel\Domain\AchievementService($this->db, new \FamilyCastel\Domain\NotificationService($this->db)))->sync($childId);
             Session::flash('success', $coins >= 0 ? t('award.custom_done') : t('award.deduct_done'));
         } catch (WriteLockedException) {
             Session::flash('error', t('common.maintenance'));

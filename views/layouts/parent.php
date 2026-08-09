@@ -9,8 +9,22 @@
 <body class="parent-app">
 <header class="topbar">
     <a class="topbar-brand" href="<?= e(url('/parent')) ?>">🏰 <span>Family Castel</span></a>
+    <?php
+    $pendingTotal = 0;
+    try {
+        $pendingTotal = array_sum((new \FamilyCastel\Domain\NotificationService(
+            \FamilyCastel\Core\Db::fromConfig(new \FamilyCastel\Core\Config(FC_ROOT . '/config'))
+        ))->pendingCounts());
+    } catch (\Throwable) {
+        // Badge is decoration — never break the page for it.
+    }
+    ?>
     <nav class="topbar-nav">
         <a href="<?= e(url('/parent')) ?>"><?= e(t('nav.dashboard')) ?></a>
+        <a href="<?= e(url('/parent/approvals')) ?>" class="nav-approvals"><?= e(t('nav.approvals')) ?><?php if ($pendingTotal > 0): ?><span class="nav-badge"><?= e((string) $pendingTotal) ?></span><?php endif; ?></a>
+        <a href="<?= e(url('/parent/sidequests')) ?>"><?= e(t('nav.sidequests')) ?></a>
+        <a href="<?= e(url('/parent/rewards')) ?>"><?= e(t('nav.rewards')) ?></a>
+        <a href="<?= e(url('/parent/milestones')) ?>"><?= e(t('nav.milestones')) ?></a>
         <a href="<?= e(url('/parent/children')) ?>"><?= e(t('nav.children')) ?></a>
         <a href="<?= e(url('/parent/templates')) ?>"><?= e(t('nav.templates')) ?></a>
     </nav>

@@ -192,3 +192,23 @@ body.parent-app, body.kid-app {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* nav badge + create panels (gameplay milestone) */
+.nav-approvals { position: relative; }
+.nav-badge {
+    display: inline-grid; place-items: center;
+    background: #e05260; color: #fff; font-weight: 800; font-size: .75rem;
+    border-radius: 999px; min-width: 1.25rem; height: 1.25rem; padding: 0 .25rem;
+    margin-left: .3rem; vertical-align: middle;
+}
+.create-panel { margin: .8rem 0 1rem; }
+.create-panel summary { list-style: none; cursor: pointer; display: inline-block; }
+.create-panel summary::-webkit-details-marker { display: none; }
+.create-panel .form-card { margin-top: .8rem; }
+.approval-card { flex-direction: column; align-items: stretch; }
+.approval-card .list-card-actions { justify-content: flex-end; }
+.approval-edit summary { cursor: pointer; font-weight: 700; color: #4a44a8; }
+.approval-edit-form { display: flex; gap: .6rem; flex-wrap: wrap; align-items: end; padding: .6rem 0; }
+.approval-edit-form label { display: flex; flex-direction: column; gap: .25rem; font-weight: 700; font-size: .85rem; }
+.approval-edit-form input { font: inherit; padding: .45rem .6rem; border: 2px solid #d9d5f2; border-radius: 10px; max-width: 9rem; }
+.topbar-nav { flex-wrap: wrap; }

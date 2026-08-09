@@ -149,9 +149,33 @@ $router->post('/parent/templates/save', $requireParent(fn () => (new \FamilyCast
 $router->post('/parent/templates/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->archive((int) $p['id'], $_POST)));
 $router->post('/parent/templates/{id}/favorite', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->toggleFavorite((int) $p['id'], $_POST)));
 
-// ---------------------------------------------------------------- kid area
-$router->get('/kid', $requireChild(function () use ($lazyDb, $view): string {
-    $child = $lazyDb()->fetchOne('SELECT * FROM children WHERE id = ?', [Auth::childId()]);
+$router->get('/parent/approvals', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ApprovalsController($lazyDb(), $view))->index()));
+$router->post('/parent/approvals/decide', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ApprovalsController($lazyDb(), $view))->decide($_POST, $ip)));
 
-    return $view->render('kid/home', ['child' => $child], 'layouts/kid');
-}));
+$router->get('/parent/sidequests', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->sidequests()));
+$router->post('/parent/sidequests/create', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->createSidequest($_POST)));
+$router->post('/parent/sidequests/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->archiveSidequest((int) $p['id'], $_POST)));
+$router->get('/parent/rewards', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->rewards()));
+$router->post('/parent/rewards/create', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->createReward($_POST)));
+$router->post('/parent/rewards/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->archiveReward((int) $p['id'], $_POST)));
+$router->get('/parent/milestones', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->milestones()));
+$router->post('/parent/milestones/create', $requireParent(fn () => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->createMilestone($_POST)));
+$router->post('/parent/milestones/{id}/claim', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->claimMilestone((int) $p['id'], $_POST)));
+$router->post('/parent/milestones/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->archiveMilestone((int) $p['id'], $_POST)));
+
+// ---------------------------------------------------------------- kid area
+$kid = fn () => new \FamilyCastel\Http\Kid\KidController($lazyDb(), $view);
+$router->get('/kid', $requireChild(fn () => $kid()->home()));
+$router->get('/kid/sidequests', $requireChild(fn () => $kid()->sidequests()));
+$router->post('/kid/sidequests/accept', $requireChild(fn () => $kid()->acceptQuest($_POST)));
+$router->post('/kid/sidequests/complete', $requireChild(fn () => $kid()->completeQuest($_POST)));
+$router->post('/kid/sidequests/cancel', $requireChild(fn () => $kid()->cancelQuest($_POST)));
+$router->post('/kid/suggestions', $requireChild(fn () => $kid()->submitSuggestion($_POST)));
+$router->get('/kid/rewards', $requireChild(fn () => $kid()->rewards()));
+$router->post('/kid/rewards/redeem', $requireChild(fn () => $kid()->redeemReward($_POST)));
+$router->post('/kid/rewards/wish', $requireChild(fn () => $kid()->wishReward($_POST)));
+$router->post('/kid/rewards/cancel', $requireChild(fn () => $kid()->cancelReward($_POST)));
+$router->get('/kid/milestones', $requireChild(fn () => $kid()->milestones()));
+$router->post('/kid/milestones/wish', $requireChild(fn () => $kid()->wishMilestone($_POST)));
+$router->get('/kid/achievements', $requireChild(fn () => $kid()->achievements()));
+$router->get('/kid/journal', $requireChild(fn () => $kid()->journal()));

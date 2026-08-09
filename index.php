@@ -47,7 +47,9 @@ if (is_file(__DIR__ . '/storage/maintenance.flag')) {
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'");
+// worker-src blob: lets the vendored canvas-confetti render off-thread; only
+// scripts already allowed by script-src 'self' can create such workers.
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; worker-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'");
 
 $router = new Router();
 require __DIR__ . '/app/routes.php';
