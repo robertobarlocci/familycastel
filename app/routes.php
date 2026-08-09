@@ -129,6 +129,26 @@ $router->get('/parent', $requireParent(function () use ($lazyDb, $view): string 
     return $view->render('parent/dashboard', ['user' => $user, 'children' => $children], 'layouts/parent');
 }));
 
+$router->get('/parent/child/{id}', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildScreenController($lazyDb(), $view))->show((int) $p['id'])));
+$router->post('/parent/child/{id}/award', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildScreenController($lazyDb(), $view))->applyTemplate((int) $p['id'], $_POST, $ip)));
+$router->post('/parent/child/{id}/custom', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildScreenController($lazyDb(), $view))->custom((int) $p['id'], $_POST, $ip)));
+
+$router->get('/parent/children', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->index()));
+$router->get('/parent/children/new', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->form(null)));
+$router->get('/parent/children/{id}/edit', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->form((int) $p['id'])));
+$router->post('/parent/children/save', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->save($_POST, $ip)));
+$router->post('/parent/children/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->archive((int) $p['id'], $_POST, $ip)));
+$router->post('/parent/children/{id}/unarchive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->unarchive((int) $p['id'], $_POST, $ip)));
+$router->get('/parent/children/{id}/qr', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->qr((int) $p['id'])));
+$router->post('/parent/children/{id}/qr/regenerate', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\ChildrenController($lazyDb(), $view))->regenerateQr((int) $p['id'], $_POST, $ip)));
+
+$router->get('/parent/templates', $requireParent(fn () => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->index()));
+$router->get('/parent/templates/new', $requireParent(fn () => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->form(null)));
+$router->get('/parent/templates/{id}/edit', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->form((int) $p['id'])));
+$router->post('/parent/templates/save', $requireParent(fn () => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->save($_POST)));
+$router->post('/parent/templates/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->archive((int) $p['id'], $_POST)));
+$router->post('/parent/templates/{id}/favorite', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->toggleFavorite((int) $p['id'], $_POST)));
+
 // ---------------------------------------------------------------- kid area
 $router->get('/kid', $requireChild(function () use ($lazyDb, $view): string {
     $child = $lazyDb()->fetchOne('SELECT * FROM children WHERE id = ?', [Auth::childId()]);

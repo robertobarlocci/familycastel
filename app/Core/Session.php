@@ -29,6 +29,20 @@ final class Session
         }
     }
 
+    public static function flash(string $type, string $message): void
+    {
+        $_SESSION['_flash'][] = ['type' => $type, 'message' => $message];
+    }
+
+    /** @return list<array{type: string, message: string}> consumed on read */
+    public static function takeFlashes(): array
+    {
+        $flashes = $_SESSION['_flash'] ?? [];
+        unset($_SESSION['_flash']);
+
+        return is_array($flashes) ? $flashes : [];
+    }
+
     public static function isHttps(): bool
     {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

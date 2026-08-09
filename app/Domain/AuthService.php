@@ -147,7 +147,7 @@ final class AuthService
     {
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
 
-        $this->db->transaction(function (Db $db) use ($childId, $byUserId, $token): void {
+        WriteGate::transaction($this->db, function (Db $db) use ($childId, $byUserId, $token): void {
             $db->execute(
                 'UPDATE auth_tokens SET revoked_at = UTC_TIMESTAMP() WHERE child_id = ? AND revoked_at IS NULL',
                 [$childId]
