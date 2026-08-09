@@ -95,6 +95,37 @@ return [
     'install.locked_lead' => 'Family Castel is already set up on this web space. The installer is locked.',
     'install.locked_home' => 'Go to the homepage',
 
+    // Auth
+    'auth.login_title' => 'Parent sign-in',
+    'auth.login_lead' => 'Sign in to award Coins and manage adventures.',
+    'auth.username' => 'Username or email',
+    'auth.password' => 'Password',
+    'auth.login_button' => 'Sign in',
+    'auth.error_failed' => 'Sign-in failed. Check your details — after too many attempts the account is briefly locked.',
+    'auth.error_csrf' => 'Security check failed — please try again.',
+    'auth.switch_to_kid' => 'I am a child — to the hero picker',
+
+    // Kid login/home
+    'kid.login_title' => 'Who is playing today?',
+    'kid.login_lead' => 'Choose your hero!',
+    'kid.no_children' => 'No heroes here yet. A parent has to add you first.',
+    'kid.pin_label' => 'Your secret number',
+    'kid.enter' => 'Let\'s go!',
+    'kid.error_pin' => 'That was not the right secret number. Try again!',
+    'kid.level' => 'Level {level}',
+    'kid.switch_to_parent' => 'I am a parent',
+    'kid.qr_invalid_title' => 'This key no longer fits',
+    'kid.qr_invalid_lead' => 'The access code was renewed. Ask your parents for the new QR code!',
+    'kid.qr_invalid_back' => 'To the hero picker',
+    'kid.welcome' => 'Hello {name}!',
+    'kid.logout' => 'Sign out',
+
+    // Parent
+    'parent.title' => 'Parent area',
+    'parent.hello' => 'Hello {name}!',
+    'parent.logout' => 'Sign out',
+    'parent.no_children' => 'No children yet. Add your first child in the settings!',
+
     'install.no_marker_title' => 'Installer locked',
     'install.no_marker_lead' => 'To (re)install, first create this empty file via your hosting file manager:',
 ];

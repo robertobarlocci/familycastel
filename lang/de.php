@@ -100,6 +100,37 @@ return [
     'install.locked_lead' => 'Family Castel ist auf diesem Webspace bereits eingerichtet. Der Installer ist gesperrt.',
     'install.locked_home' => 'Zur Startseite',
 
+    // Auth
+    'auth.login_title' => 'Eltern-Anmeldung',
+    'auth.login_lead' => 'Melde dich an, um Coins zu vergeben und Abenteuer zu verwalten.',
+    'auth.username' => 'Benutzername oder E-Mail',
+    'auth.password' => 'Passwort',
+    'auth.login_button' => 'Anmelden',
+    'auth.error_failed' => 'Anmeldung fehlgeschlagen. Bitte prüfe deine Angaben — nach zu vielen Versuchen ist das Konto kurz gesperrt.',
+    'auth.error_csrf' => 'Sicherheitsprüfung fehlgeschlagen — bitte versuche es erneut.',
+    'auth.switch_to_kid' => 'Ich bin ein Kind — zur Heldenauswahl',
+
+    // Kid login/home
+    'kid.login_title' => 'Wer spielt heute?',
+    'kid.login_lead' => 'Wähle deinen Helden!',
+    'kid.no_children' => 'Noch keine Helden hier. Ein Elternteil muss dich zuerst hinzufügen.',
+    'kid.pin_label' => 'Deine Geheimzahl',
+    'kid.enter' => 'Los geht\'s!',
+    'kid.error_pin' => 'Das war nicht die richtige Geheimzahl. Versuche es noch einmal!',
+    'kid.level' => 'Level {level}',
+    'kid.switch_to_parent' => 'Ich bin ein Elternteil',
+    'kid.qr_invalid_title' => 'Dieser Schlüssel passt nicht mehr',
+    'kid.qr_invalid_lead' => 'Der Zugangscode wurde erneuert. Frag deine Eltern nach dem neuen QR-Code!',
+    'kid.qr_invalid_back' => 'Zur Heldenauswahl',
+    'kid.welcome' => 'Hallo {name}!',
+    'kid.logout' => 'Abmelden',
+
+    // Parent
+    'parent.title' => 'Eltern-Bereich',
+    'parent.hello' => 'Hallo {name}!',
+    'parent.logout' => 'Abmelden',
+    'parent.no_children' => 'Noch keine Kinder angelegt. Füge in den Einstellungen euer erstes Kind hinzu!',
+
     'install.no_marker_title' => 'Installer gesperrt',
     'install.no_marker_lead' => 'Zum (erneuten) Installieren erstelle zuerst diese leere Datei über den Dateimanager deines Hostings:',
 ];
