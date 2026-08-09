@@ -73,14 +73,15 @@ $router->get('/', function () use ($config): string {
     return '<!doctype html><meta charset="utf-8"><title>Family Castel</title><h1>🏰 Family Castel</h1>';
 });
 
-$router->get('/install', function (): string {
-    // Installer wizard arrives in T3; this stub proves routing + redirect flow.
+$installHandler = function () use ($config): string {
+    \FamilyCastel\Core\Session::start();
     header('Content-Type: text/html; charset=UTF-8');
-    http_response_code(200);
+    $controller = new \FamilyCastel\Http\InstallController(FC_ROOT, $config);
 
-    return '<!doctype html><meta charset="utf-8"><title>Family Castel — Installation</title>'
-        . '<h1>🏰 ' . e(t('install.welcome_title')) . '</h1><p>' . e(t('install.coming_soon')) . '</p>';
-});
+    return $controller->handle((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $_POST);
+};
+$router->get('/install', $installHandler);
+$router->post('/install', $installHandler);
 
 $path = Router::resolvePath(
     (string) ($_SERVER['REQUEST_URI'] ?? '/'),
