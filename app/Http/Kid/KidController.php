@@ -41,6 +41,11 @@ final class KidController
         return $this->db->fetchOne('SELECT * FROM children WHERE id = ?', [$this->childId()]) ?? [];
     }
 
+    private const CHARACTER_EMOJI = [
+        'knight' => '🤺', 'archer' => '🏹', 'mage' => '🧙', 'paladin' => '🛡️',
+        'striker' => '👟', 'goalkeeper' => '🧤', 'defender' => '💪', 'midfielder' => '🎯',
+    ];
+
     public function home(): string
     {
         $child = $this->child();
@@ -55,6 +60,8 @@ final class KidController
         // read-and-consume is atomic (concurrent loads can't double-fire).
         $celebrations = $achievements->takeUnseen($this->childId());
 
+        $level = (int) $child['level'];
+
         return $this->view->render('kid/home', [
             'child' => $child,
             'progress' => $levels->progress((int) $child['xp_total']),
@@ -62,7 +69,48 @@ final class KidController
             'milestones' => (new MilestoneService($this->db))->activeFor($this->childId()),
             'openQuests' => count((new SidequestService($this->db))->availableFor($this->childId())),
             'celebrations' => $celebrations,
+            'worldTier' => \FamilyCastel\Domain\ThemeService::worldTier($level),
+            'nextTierLevel' => \FamilyCastel\Domain\ThemeService::nextWorldTierLevel($level),
+            'titleKey' => \FamilyCastel\Domain\ThemeService::titleKey((string) $child['theme'], $level),
+            'characterEmoji' => self::CHARACTER_EMOJI[$child['character_key']] ?? '🤺',
         ], 'layouts/kid');
+    }
+
+    // ------------------------------------------------------------ settings
+
+    public function settings(): string
+    {
+        $child = $this->child();
+
+        return $this->view->render('kid/settings', [
+            'child' => $child,
+            'allowedThemes' => \FamilyCastel\Domain\ThemeService::allowedThemes($child['allowed_themes']),
+        ], 'layouts/kid');
+    }
+
+    public function saveSettings(array $post): string
+    {
+        if (Csrf::validate($post['_csrf'] ?? null)) {
+            $child = $this->child();
+            $theme = (string) ($post['theme'] ?? $child['theme']);
+            $allowed = \FamilyCastel\Domain\ThemeService::allowedThemes($child['allowed_themes']);
+            if (!in_array($theme, $allowed, true)) {
+                $theme = (string) $child['theme'];
+            }
+            $sound = !empty($post['sound_enabled']) ? 1 : 0;
+
+            try {
+                \FamilyCastel\Domain\WriteGate::transaction($this->db, fn ($db) => $db->execute(
+                    'UPDATE children SET theme = ?, sound_enabled = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?',
+                    [$theme, $sound, $this->childId()]
+                ));
+                Session::flash('success', t('kidsettings.saved'));
+            } catch (WriteLockedException) {
+                Session::flash('error', t('common.maintenance'));
+            }
+        }
+
+        return $this->redirect('/kid/settings');
     }
 
     // ------------------------------------------------------------ sidequests

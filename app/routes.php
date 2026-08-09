@@ -76,6 +76,26 @@ $requireChild = function (callable $handler) use ($requireInstalled, $lazyDb): c
 };
 
 // ---------------------------------------------------------------- public
+$router->get('/manifest.webmanifest', function (): string {
+    header('Content-Type: application/manifest+json');
+
+    return json_encode([
+        'name' => 'Family Castel',
+        'short_name' => 'Family Castel',
+        'description' => 'Das Familien-Abenteuer: Coins, Sidequests, XP und grosse Ziele.',
+        'start_url' => './',
+        'scope' => './',
+        'display' => 'standalone',
+        'background_color' => '#2b2f6b',
+        'theme_color' => '#2b2f6b',
+        'icons' => [
+            ['src' => 'public-assets/icons/icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any'],
+            ['src' => 'public-assets/icons/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            ['src' => 'public-assets/icons/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+        ],
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+});
+
 $router->get('/health', function () use ($config): string {
     header('Content-Type: application/json');
 
@@ -178,4 +198,6 @@ $router->post('/kid/rewards/cancel', $requireChild(fn () => $kid()->cancelReward
 $router->get('/kid/milestones', $requireChild(fn () => $kid()->milestones()));
 $router->post('/kid/milestones/wish', $requireChild(fn () => $kid()->wishMilestone($_POST)));
 $router->get('/kid/achievements', $requireChild(fn () => $kid()->achievements()));
+$router->get('/kid/settings', $requireChild(fn () => $kid()->settings()));
+$router->post('/kid/settings', $requireChild(fn () => $kid()->saveSettings($_POST)));
 $router->get('/kid/journal', $requireChild(fn () => $kid()->journal()));

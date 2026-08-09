@@ -27,6 +27,10 @@
             <input id="parent_password_confirm" name="parent_password_confirm" type="password" required
                    minlength="10" autocomplete="new-password">
         </div>
+        <label class="checkbox">
+            <input type="checkbox" name="demo_data" value="1">
+            🏰 <?= e(t('install.demo_label')) ?>
+        </label>
         <button type="submit" class="btn-primary"><?= e(t('install.continue')) ?></button>
     </form>
 </section>

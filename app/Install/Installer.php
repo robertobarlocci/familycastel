@@ -26,7 +26,8 @@ final class Installer
      * @param array{
      *   db: array{host: string, port: int, name: string, user: string, password: string, prefix: string},
      *   family: array{name: string, locale: string, timezone: string},
-     *   parent: array{name: string, username: string, password: string}
+     *   parent: array{name: string, username: string, password: string},
+     *   demo?: bool
      * } $params
      */
     public function perform(array $params): void
@@ -44,8 +45,18 @@ final class Installer
 
         (new Migrator($db, $this->migrationsDir))->migrate();
 
-        $this->createParent($db, $params['parent']);
+        $parentId = $this->createParent($db, $params['parent']);
         $this->seedSettings($db, $params['family']);
+
+        if (!empty($params['demo'])) {
+            // Demo data is optional decoration — a seeding failure must NEVER
+            // fail or half-break the installation itself.
+            try {
+                (new \FamilyCastel\Domain\DemoSeeder($db))->run($parentId);
+            } catch (\Throwable $e) {
+                \FamilyCastel\Core\ErrorHandler::log(dirname($this->configDir) . '/storage/logs', $e);
+            }
+        }
 
         $secret = bin2hex(random_bytes(32));
         $this->writeConfig($params, $secret);
@@ -106,8 +117,27 @@ final class Installer
     }
 
     /** @param array{name: string, username: string, password: string} $parent */
-    private function createParent(Db $db, array $parent): void
+    private function createParent(Db $db, array $parent): int
     {
+        // Idempotent for retries after a partial earlier run — but ONLY when
+        // the existing row is provably the account just requested (password
+        // verifies). Any other pre-existing user with this username means the
+        // database is not fresh: fail loudly instead of adopting a stranger.
+        $existing = $db->fetchOne(
+            'SELECT id, password_hash FROM users WHERE username = ?',
+            [strtolower(trim($parent['username']))]
+        );
+        if ($existing !== null) {
+            if (!password_verify($parent['password'], (string) $existing['password_hash'])) {
+                throw new \RuntimeException(
+                    'A different account with this username already exists in this database. '
+                    . 'Use an empty database or another username.'
+                );
+            }
+
+            return (int) $existing['id'];
+        }
+
         $db->execute(
             'INSERT INTO users (name, username, email, password_hash, role, is_active, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
@@ -119,6 +149,8 @@ final class Installer
                 'parent',
             ]
         );
+
+        return $db->lastInsertId();
     }
 
     /** @param array{name: string, locale: string, timezone: string} $family */

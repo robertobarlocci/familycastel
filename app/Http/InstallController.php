@@ -216,6 +216,7 @@ final class InstallController
         }
 
         $this->state->set('parent', $parent);
+        $this->state->set('demo', !empty($post['demo_data']));
 
         return $this->completeAndNext('parent');
     }
@@ -236,7 +237,12 @@ final class InstallController
         $warning = null;
         try {
             $installer = new Installer($this->rootDir . '/config', $this->rootDir . '/app/Database/Migrations');
-            $installer->perform(['db' => $db, 'family' => $family, 'parent' => $parent]);
+            $installer->perform([
+                'db' => $db,
+                'family' => $family,
+                'parent' => $parent,
+                'demo' => (bool) $this->state->get('demo'),
+            ]);
         } catch (\Throwable $e) {
             \FamilyCastel\Core\ErrorHandler::log($this->rootDir . '/storage/logs', $e);
 
