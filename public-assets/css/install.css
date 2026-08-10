@@ -1,0 +1,133 @@
+/* Family Castel — installer. First impression: friendly castle at dusk. */
+
+:root {
+    --sky-top: #2b2f6b;
+    --sky-bottom: #7a4ea3;
+    --card-bg: #fffdf8;
+    --ink: #2c2a3a;
+    --ink-soft: #6a6782;
+    --brand: #f6b93b;
+    --brand-edge: #c98d10;
+    --green: #58cc02;
+    --green-edge: #46a302;
+    --red: #e05260;
+    --radius: 20px;
+}
+
+* { box-sizing: border-box; }
+
+body.install {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 70%, #f0a06a 100%);
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.install-wrap { width: 100%; max-width: 34rem; }
+
+.install-brand { text-align: center; padding: 1.2rem 0 0.6rem; color: #fff; }
+.install-castle { font-size: 3.2rem; line-height: 1; filter: drop-shadow(0 6px 12px rgba(0,0,0,.35)); }
+.install-wordmark { margin: .3rem 0 0; font-size: 1.6rem; letter-spacing: .04em; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+
+.install-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 0 rgba(0,0,0,.18), 0 24px 48px rgba(0,0,0,.28);
+    padding: 1.6rem 1.5rem 1.8rem;
+    margin: .8rem 0 2.5rem;
+}
+
+.install-card h2 { margin: .8rem 0 .4rem; font-size: 1.35rem; font-weight: 800; }
+.lead { color: var(--ink-soft); margin: 0 0 1.1rem; line-height: 1.5; }
+
+.install-progress {
+    list-style: none; display: flex; gap: .45rem; padding: 0; margin: 0 0 .4rem; justify-content: center;
+}
+.install-progress-dot {
+    width: 2rem; height: 2rem; border-radius: 999px;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: .85rem;
+    background: #eceafd; color: var(--ink-soft);
+    border: 2px solid #d9d5f2;
+}
+.install-progress-dot.done { background: var(--green); border-color: var(--green-edge); color: #fff; }
+.install-progress-dot.current { background: var(--brand); border-color: var(--brand-edge); color: #4a3403; transform: scale(1.12); }
+
+.install-error {
+    background: #fdecee; color: #96232f; border: 2px solid #f5c2c9;
+    padding: .7rem .9rem; border-radius: 12px; margin: .7rem 0; font-weight: 700;
+}
+
+.install-features { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+.install-features li { padding: .35rem 0; font-weight: 700; }
+
+.install-howto { color: var(--ink-soft); line-height: 1.6; padding-left: 1.2rem; }
+
+.check-list { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+.check-list li {
+    display: grid; grid-template-columns: 1.6rem 1fr auto; gap: .5rem; align-items: baseline;
+    padding: .45rem .4rem; border-radius: 10px;
+}
+.check-list li:nth-child(odd) { background: #f6f4fd; }
+.check-label { font-weight: 700; }
+.check-detail { color: var(--ink-soft); font-size: .85rem; text-align: right; }
+.check-fail .check-detail { color: var(--red); font-weight: 700; }
+
+.field { margin: 0 0 .9rem; display: flex; flex-direction: column; gap: .3rem; }
+.field-row { display: flex; gap: .8rem; }
+.field.grow { flex: 1; }
+label { font-weight: 800; font-size: .92rem; }
+.optional { color: var(--ink-soft); font-weight: 400; }
+small { color: var(--ink-soft); }
+
+input, select {
+    font: inherit; padding: .65rem .75rem;
+    border: 2px solid #d9d5f2; border-radius: 12px; background: #fff;
+    min-height: 48px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 3px solid #1cb0f6; outline-offset: 2px;
+}
+.input-code { text-transform: uppercase; letter-spacing: .35em; font-weight: 800; text-align: center; font-size: 1.2rem; }
+
+.btn-primary, .btn-secondary {
+    display: inline-block; width: 100%; text-align: center; text-decoration: none;
+    font: inherit; font-weight: 800; font-size: 1.05rem;
+    padding: .8rem 1.2rem; border-radius: 14px; border: 0; cursor: pointer;
+    min-height: 52px;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+.btn-primary {
+    background: var(--green); color: #fff;
+    box-shadow: 0 5px 0 var(--green-edge);
+}
+.btn-primary:active { transform: translateY(5px); box-shadow: 0 0 0 var(--green-edge); }
+.btn-secondary {
+    background: #eceafd; color: var(--ink);
+    box-shadow: 0 5px 0 #d9d5f2; margin-bottom: .6rem;
+}
+.btn-secondary:active { transform: translateY(5px); box-shadow: 0 0 0 #d9d5f2; }
+.btn-big { font-size: 1.15rem; }
+.install-actions { display: flex; flex-direction: column; }
+
+.install-summary { background: #f6f4fd; border-radius: 12px; padding: .9rem 1rem; margin: 0 0 1.2rem; }
+.install-summary dt { font-weight: 800; font-size: .85rem; color: var(--ink-soft); margin-top: .5rem; }
+.install-summary dt:first-child { margin-top: 0; }
+.install-summary dd { margin: .1rem 0 0; font-weight: 700; }
+
+.install-done { text-align: center; }
+.done-burst { font-size: 3.4rem; animation: pop .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@media (min-width: 480px) {
+    .install-actions { flex-direction: row; gap: .8rem; }
+    .btn-secondary { margin-bottom: 0; }
+}

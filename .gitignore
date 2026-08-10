@@ -25,3 +25,4 @@
 /build/
 *.local.php
 .DS_Store
+/dist/

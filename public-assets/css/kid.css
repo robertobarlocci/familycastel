@@ -1,0 +1,195 @@
+/* Family Castel — kid area. Game-feel baseline (full themed worlds land with
+   the theme milestone). Two palettes via body.theme-*. */
+
+body.kid-app {
+    --sky-1: #2b2f6b;
+    --sky-2: #7a4ea3;
+    --accent: #f6b93b;
+    background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 100%) fixed;
+    color: #fff;
+    padding-bottom: 5.2rem; /* room for bottom nav */
+}
+body.kid-app.theme-football {
+    --sky-1: #0d3b2e;
+    --sky-2: #1d7a4f;
+    --accent: #9be564;
+}
+
+.kid-main { max-width: 32rem; }
+
+.kid-page-title { font-size: 1.5rem; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.kid-section-title { font-size: 1.1rem; font-weight: 800; margin: 1.4rem 0 .5rem; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+
+/* hero header */
+.kid-hero { text-align: center; padding: .6rem 0 1rem; }
+.kid-hero-char { font-size: 3.4rem; filter: drop-shadow(0 8px 16px rgba(0,0,0,.4)); }
+.kid-hero-name { margin: .2rem 0 .5rem; font-size: 1.6rem; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.kid-hero-stats { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: .8rem; }
+.kid-app .chip { background: rgba(255,255,255,.92); color: #2c2a3a; border-color: transparent; }
+
+.xp-bar {
+    height: 1.1rem; border-radius: 999px; background: rgba(0,0,0,.35);
+    overflow: hidden; border: 2px solid rgba(255,255,255,.35);
+}
+.xp-bar-fill {
+    height: 100%; border-radius: inherit;
+    background: linear-gradient(180deg, #ffe29a 0%, var(--accent) 55%, #d9932b 100%);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.55);
+    transition: width .6s ease;
+}
+.xp-bar-hint { color: rgba(255,255,255,.85); font-size: .85rem; margin: .35rem 0 0; font-weight: 700; }
+
+/* cards on dark sky */
+.kid-app .form-card, .kid-app .empty-state, .celebration-card, .milestone-teaser, .milestone-card,
+.quest-card, .reward-card, .claim-row, .journal-entry, .achievement-card {
+    background: #fffdf8; color: #2c2a3a;
+    border-radius: 20px; border: 0;
+    box-shadow: 0 6px 0 rgba(0,0,0,.25), 0 14px 30px rgba(0,0,0,.25);
+}
+.kid-app .empty-state { padding: 2rem 1rem; text-align: center; font-weight: 700; color: #6a6782; }
+
+.celebration-card { padding: 1rem 1.2rem; margin-bottom: 1rem; border: 3px solid var(--accent); }
+.celebration-card h2 { margin: 0 0 .4rem; font-size: 1.15rem; }
+.celebration-card ul { margin: 0; padding-left: 1.1rem; }
+
+.milestone-teaser, .milestone-card { padding: 1rem 1.2rem; margin-bottom: 1rem; }
+.milestone-teaser h2, .milestone-card h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.milestone-bar {
+    height: 1.2rem; border-radius: 999px; background: #eceafd; overflow: hidden;
+    border: 2px solid #d9d5f2;
+}
+.milestone-bar.big { height: 1.6rem; }
+.milestone-bar-fill {
+    height: 100%; border-radius: inherit;
+    background: linear-gradient(180deg, #b8f397 0%, #58cc02 60%, #46a302 100%);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.5);
+    transition: width .6s ease;
+}
+.milestone-teaser p, .milestone-numbers { margin: .4rem 0 0; font-weight: 700; }
+
+/* nav tiles */
+.kid-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; margin-top: 1rem; }
+.kid-tile {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: .25rem;
+    background: #fffdf8; color: #2c2a3a; text-decoration: none;
+    border-radius: 20px; padding: 1rem .6rem;
+    box-shadow: 0 6px 0 rgba(0,0,0,.25);
+    transition: transform .08s ease, box-shadow .08s ease;
+    min-height: 64px;
+}
+.kid-tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.kid-tile-emoji { font-size: 2rem; }
+.kid-tile-label { font-weight: 800; }
+.kid-tile-badge {
+    position: absolute; top: .5rem; right: .7rem;
+    background: #e05260; color: #fff; font-weight: 800; font-size: .8rem;
+    border-radius: 999px; min-width: 1.4rem; height: 1.4rem;
+    display: grid; place-items: center; padding: 0 .3rem;
+}
+
+/* quests & rewards */
+.quest-grid { display: grid; grid-template-columns: 1fr; gap: .8rem; }
+@media (min-width: 440px) { .quest-grid { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); } }
+.quest-card, .reward-card { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .35rem; }
+.quest-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.quest-card-desc { margin: 0; color: #6a6782; font-size: .9rem; }
+.quest-card-reward, .reward-card-cost { font-weight: 800; }
+.quest-card-expiry { margin: 0; color: #b3541e; font-weight: 700; font-size: .85rem; }
+.reward-card-icon { font-size: 1.8rem; }
+.reward-card.locked { opacity: .65; }
+.reward-card .btn-primary[disabled] { background: #c9c4e0; box-shadow: 0 5px 0 #b0aacb; cursor: not-allowed; }
+
+.claim-list { display: flex; flex-direction: column; gap: .6rem; }
+.claim-row { display: flex; align-items: center; gap: .7rem; padding: .7rem .9rem; flex-wrap: wrap; }
+.claim-row-body { flex: 1; display: flex; flex-direction: column; min-width: 9rem; }
+.claim-row.status-rejected { opacity: .75; }
+.status-badge { font-weight: 700; color: #6a6782; }
+
+/* achievements */
+.achievement-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .8rem; }
+.achievement-card { padding: .9rem; text-align: center; display: flex; flex-direction: column; gap: .25rem; align-items: center; }
+.achievement-card.locked { opacity: .55; filter: grayscale(.6); }
+.achievement-icon { font-size: 2rem; }
+.achievement-title { margin: 0; font-size: .95rem; font-weight: 800; }
+.achievement-desc { margin: 0; font-size: .8rem; color: #6a6782; }
+.achievement-rarity { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #8b86a8; }
+.achievement-card.rarity-rare .achievement-rarity { color: #1a6da8; }
+.achievement-card.rarity-epic .achievement-rarity { color: #7b3fbf; }
+.achievement-card.rarity-legendary .achievement-rarity { color: #c98d10; }
+.achievement-date { font-size: .75rem; color: #6a6782; }
+
+/* journal */
+.journal-filters { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .4rem; margin-bottom: .6rem; }
+.journal-filter {
+    white-space: nowrap; text-decoration: none; font-weight: 800; font-size: .85rem;
+    background: rgba(255,255,255,.25); color: #fff; border-radius: 999px; padding: .35rem .8rem;
+}
+.journal-filter.active { background: #fffdf8; color: #2c2a3a; }
+.journal-list { display: flex; flex-direction: column; gap: .55rem; }
+.journal-entry { display: flex; gap: .7rem; padding: .65rem .9rem; align-items: baseline; }
+.journal-delta { font-weight: 800; min-width: 4.6rem; }
+.journal-delta.positive { color: #2f6708; }
+.journal-delta.negative { color: #96232f; }
+.journal-body { flex: 1; display: flex; flex-direction: column; }
+.journal-comment { color: #4a44a8; font-size: .9rem; }
+.journal-entry.status-pending { border-left: 5px solid #f6b93b; }
+.journal-entry.status-rejected { border-left: 5px solid #e05260; opacity: .8; }
+
+/* balance line + forms on sky */
+.kid-balance-line { font-weight: 800; font-size: 1.05rem; text-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.kid-form { max-width: none; }
+.kid-logout { margin-top: 1.4rem; text-align: center; }
+
+/* bottom nav */
+.kid-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: space-around;
+    background: rgba(20, 18, 40, .92); backdrop-filter: blur(6px);
+    padding: .4rem .2rem calc(.4rem + env(safe-area-inset-bottom));
+    border-top: 2px solid rgba(255,255,255,.15);
+}
+.kid-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: .1rem;
+    color: rgba(255,255,255,.85); text-decoration: none; font-size: .7rem; font-weight: 800;
+    min-width: 3.6rem; min-height: 48px; justify-content: center;
+}
+.kid-nav-item span[aria-hidden] { font-size: 1.3rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- game fonts + world scene (theme milestone) ---------- */
+body.kid-app { font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.kid-page-title, .kid-section-title, .kid-hero-name, .quest-card-title, .kid-tile-label,
+.achievement-title, .milestone-teaser h2, .milestone-card h2, .celebration-card h2 {
+    font-family: "Fredoka", "Nunito", system-ui, sans-serif;
+    letter-spacing: .01em;
+}
+
+.kid-world {
+    position: relative;
+    margin: -1rem -1rem .9rem; /* bleed to screen edges inside .kid-main padding */
+    overflow: hidden;
+    border-radius: 0 0 26px 26px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.world-scene { display: block; width: 100%; height: auto; }
+.kid-world-overlay {
+    position: absolute; left: 0; right: 0; top: .6rem;
+    text-align: center; pointer-events: none;
+    text-shadow: 0 2px 10px rgba(0,0,0,.55);
+}
+.kid-world-overlay .kid-hero-name { margin: 0; font-size: 1.7rem; }
+.kid-hero-title { margin: .1rem 0 0; font-weight: 800; color: #ffe9b3; font-size: .95rem; }
+
+.theme-picker { display: flex; gap: .8rem; border: 0; padding: 0; }
+.theme-option {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: .3rem;
+    border: 3px solid #d9d5f2; border-radius: 16px; padding: .9rem .5rem;
+    font-weight: 800; cursor: pointer;
+}
+.theme-option.selected, .theme-option:has(input:checked) { border-color: #58cc02; background: #f2fbe8; }
+.theme-option input { position: absolute; opacity: 0; }
+.theme-option-emoji { font-size: 2rem; }

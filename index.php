@@ -27,7 +27,51 @@ $config = new Config(__DIR__ . '/config');
 ErrorHandler::register(__DIR__ . '/storage/logs', (bool) $config->get('app.debug', false));
 
 BasePath::set(BasePath::detect((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
+BasePath::setPrettyUrls((bool) $config->get('app.pretty_urls', true));
 I18n::init(__DIR__ . '/lang', (string) $config->get('app.locale', I18n::DEFAULT_LOCALE));
+date_default_timezone_set((string) $config->get('app.timezone', 'UTC'));
+
+// Manual-FTP-update boot gate (plan §9): when the CODE version differs from
+// the recorded app version, no request may run on mixed code/schema. Parents
+// keep a narrow path to finish the update; everything else gets the 503.
+if ($config->isInstalled()) {
+    try {
+        $gateDb = FamilyCastel\Core\Db::fromConfig($config);
+        $row = $gateDb->fetchOne('SELECT `value` FROM settings WHERE `key` = ?', ['app.version']);
+        if ($row === null) {
+            // Legacy install predating the gate: no comparison possible.
+            $recorded = FC_VERSION;
+        } else {
+            $decoded = json_decode((string) $row['value'], true);
+            // Malformed value = FAIL CLOSED (treat as mismatch, never as OK).
+            $recorded = is_string($decoded) && $decoded !== '' ? $decoded : '0-malformed';
+        }
+        if ($recorded !== FC_VERSION) {
+            // EXACT route match after base-path stripping — no suffix tricks.
+            $path = FamilyCastel\Core\Router::resolvePath(
+                (string) ($_SERVER['REQUEST_URI'] ?? '/'),
+                FamilyCastel\Core\BasePath::get(),
+                $_GET
+            );
+            $allowed = ['/login', '/logout', '/parent/settings/updates', '/parent/settings/updates/check', '/parent/settings/updates/start-manual'];
+            if (!in_array($path, $allowed, true)) {
+                http_response_code(503);
+                header('Retry-After: 300');
+                header('Content-Type: text/html; charset=UTF-8');
+                echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                    . '<title>Family Castel</title>'
+                    . '<style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;background:#1a1f3c;color:#fff}'
+                    . 'div{text-align:center;max-width:28rem;padding:1rem}a{color:#9be564}</style>'
+                    . '<div><h1>🏰🔧</h1><h2>' . e(t('maintenance.title')) . '</h2>'
+                    . '<p>' . e(t('maintenance.update_pending', ['code' => FC_VERSION, 'db' => $recorded])) . '</p>'
+                    . '<p><a href="' . e(url('/parent/settings/updates')) . '">' . e(t('maintenance.finish_update')) . '</a></p></div>';
+                exit;
+            }
+        }
+    } catch (Throwable) {
+        // Gate check must never take the site down harder than the problem itself.
+    }
+}
 
 // Maintenance mode: friendly 503 before anything else touches the app.
 if (is_file(__DIR__ . '/storage/maintenance.flag')) {
@@ -46,41 +90,12 @@ if (is_file(__DIR__ . '/storage/maintenance.flag')) {
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'");
+// worker-src blob: lets the vendored canvas-confetti render off-thread; only
+// scripts already allowed by script-src 'self' can create such workers.
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; worker-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'");
 
 $router = new Router();
-
-$router->get('/health', function () use ($config): string {
-    header('Content-Type: application/json');
-
-    return json_encode([
-        'ok' => true,
-        'app' => 'Family Castel',
-        'version' => FC_VERSION,
-        'installed' => $config->isInstalled(),
-    ], JSON_THROW_ON_ERROR);
-});
-
-$router->get('/', function () use ($config): string {
-    if (!$config->isInstalled()) {
-        header('Location: ' . url('/install'), true, 302);
-
-        return '';
-    }
-    // Placeholder until auth lands (T4): role-aware redirect follows.
-    header('Content-Type: text/html; charset=UTF-8');
-
-    return '<!doctype html><meta charset="utf-8"><title>Family Castel</title><h1>🏰 Family Castel</h1>';
-});
-
-$router->get('/install', function (): string {
-    // Installer wizard arrives in T3; this stub proves routing + redirect flow.
-    header('Content-Type: text/html; charset=UTF-8');
-    http_response_code(200);
-
-    return '<!doctype html><meta charset="utf-8"><title>Family Castel — Installation</title>'
-        . '<h1>🏰 ' . e(t('install.welcome_title')) . '</h1><p>' . e(t('install.coming_soon')) . '</p>';
-});
+require __DIR__ . '/app/routes.php';
 
 $path = Router::resolvePath(
     (string) ($_SERVER['REQUEST_URI'] ?? '/'),
@@ -93,7 +108,8 @@ $match = $router->match((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $path);
 if ($match === null) {
     http_response_code(404);
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<!doctype html><meta charset="utf-8"><title>404</title><h1>🗺️ ' . e(t('error.404_title')) . '</h1>'
+    echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>404</title><h1>🗺️ ' . e(t('error.404_title')) . '</h1>'
         . '<p>' . e(t('error.404_body')) . '</p>';
     exit;
 }

@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  tests:
+    name: Lint + tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.2 is the shared-hosting compatibility gate; 8.3 is the dev target.
+        php: ['8.2', '8.3']
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root-dev-password
+          MARIADB_DATABASE: familycastel_test
+          MARIADB_USER: fc
+          MARIADB_PASSWORD: fc-dev-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+
+    env:
+      FC_TEST_DB_HOST: 127.0.0.1
+      FC_TEST_DB_PORT: '3306'
+      FC_TEST_DB_NAME: familycastel_test
+      FC_TEST_DB_USER: fc
+      FC_TEST_DB_PASS: fc-dev-password
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, mbstring, curl, zip, openssl
+          coverage: none
+
+      - name: Syntax check every PHP file
+        run: |
+          set -e
+          find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' -print0 \
+            | xargs -0 -n1 -P4 php -l > /dev/null
+          echo "php -l clean"
+
+      - name: Install dev dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Grant test-database privileges
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot-dev-password -e \
+            "GRANT ALL ON \`familycastel_test\`.* TO 'fc'@'%'; GRANT ALL ON \`familycastel_updtest\`.* TO 'fc'@'%'; FLUSH PRIVILEGES;"
+
+      - name: PHPUnit (unit + integration against MariaDB)
+        run: vendor/bin/phpunit --no-coverage
+
+      - name: Updater end-to-end (3 scenarios over real HTTP)
+        env:
+          FC_APP_ROOT: ${{ github.workspace }}
+          FC_TEST_DB_ROOT_PASSWORD: root-dev-password
+        run: bash tests/e2e-updater.sh
+
+  release-build:
+    name: Release ZIP builds cleanly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: zip
+          coverage: none
+      - name: Build the production package
+        run: php scripts/build-release.php --out=dist
+      - name: Manifest sanity
+        run: |
+          set -e
+          unzip -l dist/family-castel-v*.zip | head -30
+          unzip -p dist/family-castel-v*.zip release.json | php -r '
+            $m = json_decode(stream_get_contents(STDIN), true);
+            if (($m["app"] ?? "") !== "Family Castel") { fwrite(STDERR, "bad app\n"); exit(1); }
+            if (!preg_match("/^\d+\.\d+\.\d+$/", $m["version"] ?? "")) { fwrite(STDERR, "bad version\n"); exit(1); }
+            echo "release.json OK — " . count($m["files"]) . " files\n";
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-zip
+          path: dist/family-castel-v*.zip*
+          retention-days: 7
+
+  e2e:
+    name: Playwright E2E (dev stack + headless install)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the dev stack
+        run: docker compose -f docker/compose.yaml up -d --wait
+
+      - name: Headless install with demo family (same Installer service as the wizard)
+        run: |
+          docker compose -f docker/compose.yaml exec -T app chmod -R a+w storage config
+          docker compose -f docker/compose.yaml exec -T -u www-data app php scripts/ci-install.php --demo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # Screenshots FIRST: they must show the pristine seeded demo, before
+      # functional tests append ledger history (append-only by design).
+      - name: Generate screenshots artifact
+        working-directory: e2e
+        env:
+          FC_BASE_URL: http://localhost:8090
+        run: npx playwright test specs/screenshots.spec.ts
+
+      - name: Run E2E suites (desktop + mobile)
+        working-directory: e2e
+        env:
+          FC_BASE_URL: http://localhost:8090
+        run: npx playwright test specs/auth.spec.ts specs/kid.spec.ts specs/parent.spec.ts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: docs/screenshots/
+          retention-days: 7
+
+  coverage:
+    name: Coverage gate (Domain + Core >= 80%)
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root-dev-password
+          MARIADB_DATABASE: familycastel_test
+          MARIADB_USER: fc
+          MARIADB_PASSWORD: fc-dev-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+    env:
+      FC_TEST_DB_HOST: 127.0.0.1
+      FC_TEST_DB_PORT: '3306'
+      FC_TEST_DB_NAME: familycastel_test
+      FC_TEST_DB_USER: fc
+      FC_TEST_DB_PASS: fc-dev-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, curl, zip, openssl
+          coverage: pcov
+      - run: composer install --no-interaction --no-progress
+      - name: Grant test-database privileges
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot-dev-password -e \
+            "GRANT ALL ON \`familycastel_test\`.* TO 'fc'@'%'; GRANT ALL ON \`familycastel_updtest\`.* TO 'fc'@'%'; FLUSH PRIVILEGES;"
+      - name: PHPUnit with coverage on app/Domain + app/Core
+        # phpunit.coverage.xml restricts <source> to Domain+Core — the CLI
+        # --coverage-filter flag only ADDS to the default source and would
+        # dilute the number with controllers.
+        run: |
+          vendor/bin/phpunit -c phpunit.coverage.xml --coverage-text=coverage.txt --no-progress
+          grep -A4 "Summary" coverage.txt
+      - name: Enforce the 80% line-coverage floor
+        run: |
+          php -r '
+            $t = file_get_contents("coverage.txt");
+            if (!preg_match("/Lines:\s+([0-9.]+)%/", $t, $m)) { fwrite(STDERR, "no coverage summary found\n"); exit(1); }
+            $pct = (float) $m[1];
+            echo "Domain+Core line coverage: {$pct}%\n";
+            exit($pct >= 80.0 ? 0 : 1);
+          '

@@ -1,0 +1,250 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-test:
+    name: Tag ↔ VERSION ↔ CHANGELOG + full tests
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root-dev-password
+          MARIADB_DATABASE: familycastel_test
+          MARIADB_USER: fc
+          MARIADB_PASSWORD: fc-dev-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+    env:
+      FC_TEST_DB_HOST: 127.0.0.1
+      FC_TEST_DB_PORT: '3306'
+      FC_TEST_DB_NAME: familycastel_test
+      FC_TEST_DB_USER: fc
+      FC_TEST_DB_PASS: fc-dev-password
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must equal VERSION and have a CHANGELOG entry
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME#v}"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [ "$TAG" != "$FILE_VERSION" ]; then
+            echo "Tag v$TAG does not match VERSION ($FILE_VERSION)"; exit 1
+          fi
+          grep -Fq "## [$TAG]" CHANGELOG.md || { echo "CHANGELOG.md has no entry for $TAG"; exit 1; }
+          echo "v$TAG consistent across tag, VERSION and CHANGELOG"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, curl, zip, openssl
+          coverage: none
+
+      - name: Install dev dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Grant test-database privileges
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot-dev-password -e \
+            "GRANT ALL ON \`familycastel_test\`.* TO 'fc'@'%'; GRANT ALL ON \`familycastel_updtest\`.* TO 'fc'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Full test suite
+        run: vendor/bin/phpunit --no-coverage
+
+      - name: Updater end-to-end
+        env:
+          FC_APP_ROOT: ${{ github.workspace }}
+          FC_TEST_DB_ROOT_PASSWORD: root-dev-password
+        run: bash tests/e2e-updater.sh
+
+  build:
+    name: Build the production package
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: zip
+          coverage: none
+      - id: meta
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        run: php scripts/build-release.php --out=dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: dist/family-castel-v*.zip*
+          if-no-files-found: error
+
+  clean-install-gate:
+    name: Clean install from the built ZIP (PHP ${{ matrix.php }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: dist
+
+      - name: Unpack the release like a hosting customer would
+        run: |
+          set -e
+          mkdir webroot
+          unzip -q dist/family-castel-v*.zip -d webroot
+          # The htaccess guards are first-class artifacts — assert they shipped.
+          for f in .htaccess app/.htaccess views/.htaccess config/.htaccess lang/.htaccess storage/.htaccess; do
+            test -f "webroot/$f" || { echo "MISSING guard: $f"; exit 1; }
+          done
+          test -f webroot/config/CAN_INSTALL || { echo "installer gate not armed"; exit 1; }
+          echo "package layout OK"
+
+      - name: Start Apache + MariaDB from the package
+        # 8.2 leg: root install with mod_rewrite (the common case).
+        # 8.3 leg: SUBDIRECTORY install (/family/) WITHOUT mod_rewrite —
+        # the two advertised shared-hosting fallbacks (plan §15).
+        run: |
+          set -e
+          if [ "${{ matrix.php }}" = "8.2" ]; then
+            SUBDIR=""; REWRITE="a2enmod rewrite > /dev/null;"
+          else
+            SUBDIR="family/"; REWRITE=""
+          fi
+          echo "SUBDIR=$SUBDIR" >> "$GITHUB_ENV"
+          MOUNT="/var/www/html/${SUBDIR%/}"; MOUNT="${MOUNT%/}"
+          docker network create fc-net
+          docker run -d --name fc-db --network fc-net \
+            -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=familycastel \
+            -e MARIADB_USER=fc -e MARIADB_PASSWORD=fc-secret mariadb:10.11
+          docker run -d --name fc-app --network fc-net -p 8088:80 \
+            -v "$PWD/webroot":"$MOUNT" php:${{ matrix.php }}-apache \
+            bash -c "curl -fsSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/ipe && chmod +x /usr/local/bin/ipe && ipe pdo_mysql zip > /dev/null 2>&1 || { echo EXTENSION-INSTALL-FAILED; exit 1; }; $REWRITE printf '<Directory /var/www/html>\nAllowOverride All\n</Directory>\n' > /etc/apache2/conf-enabled/zz-allowoverride.conf; chown -R www-data:www-data $MOUNT/storage $MOUNT/config; apache2-foreground"
+          for i in $(seq 1 60); do
+            docker exec fc-db healthcheck.sh --connect --innodb_initialized 2>/dev/null && break; sleep 2
+          done
+          docker exec fc-db healthcheck.sh --connect --innodb_initialized || { echo "MariaDB never became ready"; exit 1; }
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null http://localhost:8088/${SUBDIR} && break; sleep 2
+          done
+          curl -s -o /dev/null http://localhost:8088/${SUBDIR} || { echo "Apache never became ready"; docker logs fc-app | tail -30; exit 1; }
+
+      - name: Protection probes over real Apache
+        run: |
+          set -e
+          probe() { curl -s -o /dev/null -w '%{http_code}' "http://localhost:8088/${SUBDIR}$1"; }
+          for path in app/Core/Db.php views/kid/home.php config/config.sample.php lang/de.php storage/.htaccess VERSION release.json; do
+            code="$(probe "$path")"
+            case "$code" in
+              200) echo "EXPOSED: /${SUBDIR}$path returned 200"; exit 1 ;;
+              *)   echo "/${SUBDIR}$path -> $code (protected)" ;;
+            esac
+          done
+          # The front door itself must respond (installer redirect/page).
+          home="$(probe '')"
+          case "$home" in
+            200|302) echo "front controller OK ($home)" ;;
+            *) echo "front controller broken ($home)"; docker logs fc-app | tail -20; exit 1 ;;
+          esac
+
+      - name: Install headlessly through the REAL Installer service
+        run: |
+          set -e
+          body="$(curl -sL "http://localhost:8088/${SUBDIR}")"
+          echo "$body" | grep -qi "Family Castel" || { echo "installer page does not identify the app"; exit 1; }
+          # The package ships no scripts/ — drive the same Installer service inline:
+          docker exec -u www-data fc-app php -r '
+            $root = rtrim("/var/www/html/" . "'"$SUBDIR"'", "/");
+            define("FC_ROOT", $root);
+            require $root . "/app/Core/Autoloader.php";
+            \FamilyCastel\Core\Autoloader::register($root . "/app");
+            require $root . "/app/Core/helpers.php";
+            (new \FamilyCastel\Install\Installer($root . "/config", $root . "/app/Database/Migrations"))->perform([
+              "db" => ["host" => "fc-db", "port" => 3306, "name" => "familycastel", "user" => "fc", "password" => "fc-secret", "prefix" => ""],
+              "family" => ["name" => "CI Familie", "locale" => "de", "timezone" => "Europe/Zurich"],
+              "parent" => ["name" => "CI Parent", "username" => "ci-parent", "password" => "Ci-Passwort-2026"],
+              "demo" => true,
+            ]);
+            echo "installed\n";
+          '
+          test ! -f webroot/config/CAN_INSTALL || { echo "CAN_INSTALL not consumed"; exit 1; }
+          test -f webroot/config/config.php || { echo "config.php missing"; exit 1; }
+
+      - name: Smoke-test parent login + kid hero picker
+        run: |
+          set -e
+          ROOT_URL="http://localhost:8088/${SUBDIR}"
+
+          # 1. The installer must have detected the leg's URL mode correctly:
+          #    rewrite leg (8.2) → pretty_urls=true, no-rewrite leg → false.
+          MODE="$(docker exec fc-app php -r 'var_export((require "/var/www/html/'"$SUBDIR"'config/config.php")["app"]["pretty_urls"]);')"
+          if [ "${{ matrix.php }}" = "8.2" ]; then EXPECT="true"; else EXPECT="false"; fi
+          [ "$MODE" = "$EXPECT" ] || { echo "pretty_urls=$MODE, expected $EXPECT"; exit 1; }
+
+          # 2. NATURAL navigation: follow the app's own redirects and links —
+          #    this catches generated URLs that 404 in the active mode.
+          JAR=$(mktemp)
+          LOGIN="$(curl -sL -c "$JAR" "$ROOT_URL")"
+          echo "$LOGIN" | grep -qi "Eltern-Anmeldung" || { echo "front page did not reach the login form"; exit 1; }
+          ACTION="$(echo "$LOGIN" | grep -o 'action="[^"]*"' | head -1 | sed 's/action="//; s/"$//' | sed 's/&amp;/\&/g')"
+          CSRF="$(echo "$LOGIN" | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//; s/"$//')"
+          test -n "$CSRF" || { echo "no CSRF token on login page"; exit 1; }
+          REDIRECT="$(curl -s -b "$JAR" -c "$JAR" -o /dev/null -w '%{redirect_url}' \
+            --data-urlencode "_csrf=$CSRF" --data-urlencode "username=ci-parent" \
+            --data-urlencode "password=Ci-Passwort-2026" "http://localhost:8088$ACTION")"
+          test -n "$REDIRECT" || { echo "parent login did not redirect"; exit 1; }
+          DASH="$(curl -s -b "$JAR" "$REDIRECT")"
+          echo "$DASH" | grep -q "Emma" || { echo "post-login redirect target missing demo child"; exit 1; }
+
+          # 3. Static assets stay DIRECT files in every mode.
+          for asset in public-assets/css/app.css public-assets/js/pwa.js sw.js; do
+            CODE="$(curl -s -o /dev/null -w '%{http_code}' "${ROOT_URL}${asset}")"
+            [ "$CODE" = "200" ] || { echo "asset ${asset} -> $CODE"; exit 1; }
+          done
+          # The dashboard's own stylesheet link must resolve.
+          CSS="$(echo "$DASH" | grep -o 'href="[^"]*\.css[^"]*"' | head -1 | sed 's/href="//; s/"$//' | sed 's/&amp;/\&/g')"
+          test -n "$CSS" || { echo "no stylesheet link on dashboard"; exit 1; }
+          CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8088$CSS")"
+          [ "$CODE" = "200" ] || { echo "dashboard stylesheet $CSS -> $CODE"; exit 1; }
+
+          KIDS="$(curl -s "${ROOT_URL}index.php?r=/kid/login")"
+          echo "$KIDS" | grep -q "Noah" || { echo "hero picker missing demo child"; exit 1; }
+          echo "clean install fully verified: mode=$MODE, natural login flow, assets, demo family"
+
+  publish:
+    name: Publish the GitHub Release
+    needs: [build, clean-install-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: dist
+      - name: Extract release notes from CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="## [$VERSION]" 'index($0, v) == 1 {flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > notes.md
+          test -s notes.md || echo "See CHANGELOG.md" > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: |
+            dist/family-castel-v*.zip
+            dist/family-castel-v*.zip.sha256

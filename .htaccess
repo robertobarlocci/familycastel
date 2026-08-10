@@ -2,12 +2,18 @@
 
 Options -Indexes
 
-# Deny direct HTTP access to internal directories (each also ships its own .htaccess)
+# Deny direct HTTP access to internal directories (each also ships its own
+# .htaccess with "Require all denied" — the rewrite rules are defense in
+# depth). The IfModule guard keeps the site alive on hosts WITHOUT
+# mod_rewrite: a bare RewriteEngine would be a hard 500 there (plan §15's
+# no-rewrite fallback relies on the per-directory guards + FilesMatch).
+<IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteRule ^(app|config|storage|lang|tests|vendor|docker|scripts|docs)(/|$) - [F,L]
+RewriteRule ^(app|views|config|storage|lang|tests|vendor|docker|scripts|docs)(/|$) - [F,L]
 
 # Deny dot-directories/files (.git, .env, .user.ini, …) and editor/backup leftovers
 RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+</IfModule>
 
 # Deny sensitive file types anywhere (incl. editor/backup suffixes like foo.php~)
 <FilesMatch "(~|\.(lock|json|dist|sql|log|sh|yml|yaml|md|bak|backup|old|orig|swp|save|ini))$">
@@ -17,7 +23,10 @@ RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
     Require all denied
 </FilesMatch>
 
-# Front controller routing (relative — works at domain root and in subdirectories)
+# Front controller routing (relative — works at domain root and in
+# subdirectories). Without mod_rewrite the app falls back to ?r= links.
+<IfModule mod_rewrite.c>
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
+</IfModule>

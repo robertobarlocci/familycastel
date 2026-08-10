@@ -92,8 +92,17 @@ final class Db
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * Run $fn inside a transaction. Nested calls JOIN the outer transaction
+     * (PDO cannot nest); only the outermost call commits/rolls back — so a
+     * controller can compose several service mutations atomically.
+     */
     public function transaction(callable $fn): mixed
     {
+        if ($this->pdo->inTransaction()) {
+            return $fn($this);
+        }
+
         $this->pdo->beginTransaction();
         try {
             $result = $fn($this);
