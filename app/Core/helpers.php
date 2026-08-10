@@ -8,6 +8,7 @@
 
 declare(strict_types=1);
 
+use FamilyCastel\Core\Assets;
 use FamilyCastel\Core\BasePath;
 use FamilyCastel\Core\I18n;
 
@@ -55,6 +56,18 @@ if (!function_exists('url')) {
     function url(string $path): string
     {
         return BasePath::prefix($path);
+    }
+}
+
+if (!function_exists('asset')) {
+    /**
+     * Versioned URL for a CSS/JS asset — busts browser and service-worker caches
+     * on every release. Use url() for fonts and icons: those are requested from
+     * inside fonts.css and the webmanifest, which cannot carry the token.
+     */
+    function asset(string $path): string
+    {
+        return Assets::url($path);
     }
 }
 

@@ -231,6 +231,18 @@ jobs:
           test -n "$CSS" || { echo "no stylesheet link on dashboard"; exit 1; }
           CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8088$CSS")"
           [ "$CODE" = "200" ] || { echo "dashboard stylesheet $CSS -> $CODE"; exit 1; }
+          # …and it must carry the cache-busting token. Without it a returning
+          # visitor keeps the previous release's stylesheet (no Cache-Control
+          # ships, so browsers cache heuristically) — that is how a phone went on
+          # rendering the desktop navbar after the mobile CSS had shipped.
+          APP_VERSION="$(tr -d '[:space:]' < webroot/VERSION)"
+          test -n "$APP_VERSION" || { echo "could not read VERSION from the unpacked package"; exit 1; }
+          case "$CSS" in
+            *"?v=$APP_VERSION"*|*"&v=$APP_VERSION"*) ;;
+            *) echo "dashboard stylesheet $CSS carries no v=$APP_VERSION cache-busting token"; exit 1 ;;
+          esac
+          # (The service worker's own token is asserted by e2e/specs/assets.spec.ts:
+          # it needs a real kid session, which this curl-level gate cannot create.)
 
           KIDS="$(curl -s "${ROOT_URL}index.php?r=/kid/login")"
           echo "$KIDS" | grep -q "Noah" || { echo "hero picker missing demo child"; exit 1; }

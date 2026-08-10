@@ -70,5 +70,5 @@
         <?php endforeach; ?>
     </section>
 <?php endforeach; ?>
-<script src="<?= e(url('/public-assets/js/confirm.js')) ?>"></script>
-<script src="<?= e(url('/public-assets/js/progress.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/confirm.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/progress.js')) ?>"></script>

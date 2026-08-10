@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace FamilyCastel\Tests\Unit;
 
+use FamilyCastel\Core\Assets;
 use FamilyCastel\Core\BasePath;
 use PHPUnit\Framework\TestCase;
 
@@ -13,6 +14,7 @@ final class UrlHelperTest extends TestCase
     {
         BasePath::set('');
         BasePath::setPrettyUrls(true);
+        Assets::setVersion('0');
     }
 
     public function testUrlAtDomainRoot(): void
@@ -69,5 +71,47 @@ final class UrlHelperTest extends TestCase
         self::assertSame('/family/sw.js', url('/sw.js'));
         self::assertSame('/family/offline.html', url('/offline.html'));
         self::assertSame('/family/update.php', url('/update.php'));
+    }
+
+    public function testAssetHelperAddsTheVersionTokenAtDomainRoot(): void
+    {
+        BasePath::set('');
+        Assets::setVersion('0.1.3');
+
+        self::assertSame('/public-assets/css/app.css?v=0.1.3', asset('/public-assets/css/app.css'));
+        self::assertSame('/public-assets/js/navigation.js?v=0.1.3', asset('/public-assets/js/navigation.js'));
+    }
+
+    public function testAssetHelperKeepsTheSubdirectoryPrefix(): void
+    {
+        BasePath::set('/family');
+        Assets::setVersion('0.1.3');
+
+        self::assertSame('/family/public-assets/css/app.css?v=0.1.3', asset('/public-assets/css/app.css'));
+    }
+
+    /**
+     * The production install runs in ?r= mode (issue #4). A versioned asset must
+     * stay a DIRECT file there: routing it through index.php?r= would 404 it,
+     * which is how a whole site loses its styling.
+     */
+    public function testVersionedAssetsStayDirectFilesInQueryRoutingMode(): void
+    {
+        BasePath::set('/family');
+        BasePath::setPrettyUrls(false);
+        Assets::setVersion('0.1.3');
+
+        self::assertSame('/family/public-assets/css/app.css?v=0.1.3', asset('/public-assets/css/app.css'));
+        self::assertSame('/family/sw.js?v=0.1.3', asset('/sw.js'));
+    }
+
+    /** url() itself must not gain a token — only asset() versions. */
+    public function testUrlHelperStaysUnversioned(): void
+    {
+        BasePath::set('');
+        Assets::setVersion('0.1.3');
+
+        self::assertSame('/public-assets/icons/icon.svg', url('/public-assets/icons/icon.svg'));
+        self::assertSame('/sw.js', url('/sw.js'));
     }
 }

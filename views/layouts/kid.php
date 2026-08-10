@@ -8,11 +8,11 @@
     <link rel="manifest" href="<?= e(url('/manifest.webmanifest')) ?>">
     <link rel="icon" href="<?= e(url('/public-assets/icons/icon.svg')) ?>" type="image/svg+xml">
     <link rel="apple-touch-icon" href="<?= e(url('/public-assets/icons/icon-192.png')) ?>">
-    <link rel="stylesheet" href="<?= e(url('/public-assets/css/fonts.css')) ?>">
-    <link rel="stylesheet" href="<?= e(url('/public-assets/css/app.css')) ?>">
-    <link rel="stylesheet" href="<?= e(url('/public-assets/css/kid.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/public-assets/css/fonts.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/public-assets/css/app.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/public-assets/css/kid.css')) ?>">
 </head>
-<body class="kid-app theme-<?= eattr($child['theme'] ?? 'fantasy') ?>" data-sound="<?= !empty($child['sound_enabled']) ? '1' : '0' ?>" data-sw="<?= eattr(url('/sw.js')) ?>">
+<body class="kid-app theme-<?= eattr($child['theme'] ?? 'fantasy') ?>" data-sound="<?= !empty($child['sound_enabled']) ? '1' : '0' ?>" data-sw="<?= eattr(asset('/sw.js')) ?>">
 <?php
 $currentPath = \FamilyCastel\Core\Router::resolvePath(
     (string) ($_SERVER['REQUEST_URI'] ?? '/kid'),
@@ -42,8 +42,8 @@ $kidCurrent = static function (string $path) use ($currentPath): string {
     <a href="<?= e(url('/kid/milestones')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/milestones') ?>><span aria-hidden="true">🏆</span><span><?= e(t('kidnav.milestones')) ?></span></a>
     <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/journal') ?>><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
 </nav>
-<script src="<?= e(url('/public-assets/js/progress.js')) ?>"></script>
-<script src="<?= e(url('/public-assets/js/sounds.js')) ?>"></script>
-<script src="<?= e(url('/public-assets/js/pwa.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/progress.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/sounds.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/pwa.js')) ?>"></script>
 </body>
 </html>

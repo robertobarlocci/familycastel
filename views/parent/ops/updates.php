@@ -55,4 +55,4 @@
         <?php endforeach; ?>
     </section>
 <?php endif; ?>
-<script src="<?= e(url('/public-assets/js/confirm.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/confirm.js')) ?>"></script>

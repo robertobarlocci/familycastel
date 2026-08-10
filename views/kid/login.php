@@ -33,4 +33,4 @@
 
     <p class="auth-switch"><a href="<?= e(url('/login')) ?>">🧑‍🦱 <?= e(t('kid.switch_to_parent')) ?></a></p>
 </section>
-<script src="<?= e(url('/public-assets/js/kid-login.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/kid-login.js')) ?>"></script>
