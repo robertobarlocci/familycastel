@@ -13,6 +13,7 @@ define('FC_VERSION', trim((string) @file_get_contents(__DIR__ . '/VERSION')) ?: 
 
 require __DIR__ . '/app/Core/Autoloader.php';
 
+use FamilyCastel\Core\Assets;
 use FamilyCastel\Core\Autoloader;
 use FamilyCastel\Core\BasePath;
 use FamilyCastel\Core\Config;
@@ -27,6 +28,10 @@ require __DIR__ . '/app/Core/helpers.php';
 
 $config = new Config(__DIR__ . '/config');
 ErrorHandler::register(__DIR__ . '/storage/logs', (bool) $config->get('app.debug', false));
+
+// Asset URLs carry the app version so a released CSS/JS change is not masked by
+// a cached copy (no Cache-Control ships — see Assets).
+Assets::setVersion(FC_VERSION);
 
 BasePath::set(BasePath::detect((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
 BasePath::setPrettyUrls(BasePath::shouldUsePrettyUrls(

@@ -7,8 +7,8 @@
              aria-label="<?= eattr(t('children.qr_alt', ['name' => $child['name']])) ?>"></div>
         <p class="qr-url"><code><?= e($qrUrl) ?></code></p>
         <p class="muted"><?= e(t('children.qr_once_warning')) ?></p>
-        <script src="<?= e(url('/public-assets/vendor/qrcode.js')) ?>"></script>
-        <script src="<?= e(url('/public-assets/js/qr-render.js')) ?>"></script>
+        <script src="<?= e(asset('/public-assets/vendor/qrcode.js')) ?>"></script>
+        <script src="<?= e(asset('/public-assets/js/qr-render.js')) ?>"></script>
     <?php else: ?>
         <p class="lead"><?= e($hasToken ? t('children.qr_active_lead') : t('children.qr_none_lead')) ?></p>
     <?php endif; ?>
@@ -20,4 +20,4 @@
     </form>
     <a class="btn-secondary" href="<?= e(url('/parent/children')) ?>"><?= e(t('common.back')) ?></a>
 </section>
-<script src="<?= e(url('/public-assets/js/confirm.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/confirm.js')) ?>"></script>

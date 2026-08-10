@@ -5,6 +5,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-10
+
+Fixes a phone showing the old, cramped parent navigation instead of the hamburger
+menu. If the parent area looks messy on your phone — all the menu entries crammed
+across several rows on top of each other — installing this release fixes it. You do
+not need to clear your browser data or reinstall the app from your home screen.
+
+### Fixed
+- Stylesheets and scripts are now requested with the app version attached to their
+  address, so your browser fetches the current ones after an update instead of
+  reusing what it downloaded weeks ago. Family Castel ships no cache rules of its
+  own (deliberately — the target hosting cannot be relied on to support them), so
+  browsers were free to keep an old stylesheet for days. On a phone that meant the
+  mobile layout, including the hamburger menu, never took effect: the design had
+  shipped in 0.1.1, but the file carrying it was never re-downloaded.
+- The offline app's stored copy of the design files is now tied to the installed
+  version, so it is refreshed on every update. Previously it was labelled "v1"
+  permanently, so once a child had opened Family Castel from the home screen, that
+  device kept serving the same stylesheets and scripts forever — and, because the
+  offline helper also covers the parent area, it could keep the old look there too.
+- The offline page itself is refreshed the same way, instead of being pinned to the
+  version that was installed when the app was first opened.
+
+### Added
+- The release check now refuses to publish if a page's stylesheet is missing its
+  version marker, and the test suite pins the agreement between the addresses the
+  pages request and the ones the offline helper stores — a mismatch there is
+  invisible in normal use and would quietly disable offline support.
+
 ## [0.1.2] - 2026-08-10
 
 Repairs the in-app updater, which could leave a site without any styling after an

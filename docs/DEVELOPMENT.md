@@ -40,6 +40,30 @@ npm run reset-throttle                    # clear login throttling after repeate
 Rules: tests first (RED→GREEN), ≥80% coverage on `app/Domain` + `app/Core`,
 integration tests always against MariaDB — never SQLite.
 
+## Static assets: `asset()` vs `url()`
+
+Nothing ships a `Cache-Control` header (mod_headers/mod_expires are not guaranteed
+on the target hosting), so browsers cache assets *heuristically* — a returning
+visitor can reuse a stylesheet from a previous release for days. Every CSS/JS URL
+therefore carries the app version:
+
+- **`asset('/public-assets/css/app.css')`** → `…/app.css?v=<VERSION>`. Use for all
+  CSS and JS, and for `/sw.js`.
+- **`url('/public-assets/icons/icon.svg')`** → unversioned. Use for fonts and
+  icons: they are requested from *inside* `fonts.css` and the webmanifest, which
+  cannot carry a PHP-generated token, and `caches.match()` compares the full URL
+  including the query — a versioned precache entry could never answer them.
+
+The rule: **an asset is versioned exactly when every requester of it can carry the
+token.** `sw.js` reads the same token from its own registration URL
+(`sw.js?v=…`, emitted by the kid layout) and splits its shell the same way;
+`tests/Unit/ServiceWorkerShellTest.php` pins the agreement in both directions,
+because drift there is silent — every precache lookup simply misses.
+
+Within one version the token does not change, so **hard-reload the dev stack**
+(Ctrl-Shift-R) after editing CSS/JS. That is the deliberate cost of a single global
+token, which is what lets the static service worker compute the identical URLs.
+
 ## Release pipeline
 
 - `ci.yml` — on every push/PR: `php -l` sweep, PHPUnit on PHP 8.2 + 8.3

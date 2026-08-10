@@ -83,5 +83,5 @@
     <?= \FamilyCastel\Core\Csrf::field() ?>
     <button type="submit" class="btn-ghost"><?= e(t('kid.logout')) ?></button>
 </form>
-<script src="<?= e(url('/public-assets/vendor/confetti.js')) ?>"></script>
-<script src="<?= e(url('/public-assets/js/celebrate.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/vendor/confetti.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/celebrate.js')) ?>"></script>

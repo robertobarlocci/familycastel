@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? t('parent.title')) ?> — Family Castel</title>
-    <link rel="stylesheet" href="<?= e(url('/public-assets/css/fonts.css')) ?>">
-    <link rel="stylesheet" href="<?= e(url('/public-assets/css/app.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/public-assets/css/fonts.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('/public-assets/css/app.css')) ?>">
 </head>
 <body class="parent-app">
 <?php
@@ -63,6 +63,6 @@ $currentAttr = static fn (string $path, bool $prefix = false): string => $isCurr
     <?php endforeach; ?>
     <?= $content ?>
 </main>
-<script src="<?= e(url('/public-assets/js/navigation.js')) ?>"></script>
+<script src="<?= e(asset('/public-assets/js/navigation.js')) ?>"></script>
 </body>
 </html>
