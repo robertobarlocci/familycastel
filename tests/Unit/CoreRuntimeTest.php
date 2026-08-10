@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FamilyCastel\Tests\Unit;
 
 use FamilyCastel\Core\Auth;
+use FamilyCastel\Core\BasePath;
 use FamilyCastel\Core\ErrorHandler;
 use FamilyCastel\Core\I18n;
 use FamilyCastel\Core\Session;
@@ -100,6 +101,33 @@ final class CoreRuntimeTest extends TestCase
         $flashes = Session::takeFlashes();
         self::assertCount(2, $flashes);
         self::assertSame([], Session::takeFlashes(), 'flashes are consumed');
+    }
+
+    public function testMalformedFlashStorageIsDiscarded(): void
+    {
+        $_SESSION['_flash'] = 'not-an-array';
+        self::assertSame([], Session::takeFlashes());
+        self::assertArrayNotHasKey('_flash', $_SESSION);
+    }
+
+    public function testSessionStartsWithSubdirectoryCookieScopeAndRegenerates(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        BasePath::set('/family');
+        unset($_SERVER['HTTPS']);
+        $_SERVER['SERVER_PORT'] = 80;
+
+        Session::start();
+        self::assertSame(PHP_SESSION_ACTIVE, session_status());
+        self::assertSame('/family/', session_get_cookie_params()['path']);
+        $before = session_id();
+        Session::regenerate();
+        self::assertNotSame($before, session_id());
+        session_write_close();
+
+        BasePath::set('');
     }
 
     public function testIsHttpsReadsServerState(): void

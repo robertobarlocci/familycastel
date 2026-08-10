@@ -31,7 +31,7 @@ jobs:
       FC_TEST_DB_USER: fc
       FC_TEST_DB_PASS: fc-dev-password
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Tag must equal VERSION and have a CHANGELOG entry
         run: |
@@ -74,7 +74,7 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -84,7 +84,7 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - name: Build
         run: php scripts/build-release.php --out=dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: package
           path: dist/family-castel-v*.zip*
@@ -99,7 +99,7 @@ jobs:
       matrix:
         php: ['8.2', '8.3']
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: package
           path: dist
@@ -166,8 +166,17 @@ jobs:
       - name: Install headlessly through the REAL Installer service
         run: |
           set -e
-          body="$(curl -sL "http://localhost:8088/${SUBDIR}")"
-          echo "$body" | grep -qi "Family Castel" || { echo "installer page does not identify the app"; exit 1; }
+          body="$(curl -fsSL "http://localhost:8088/${SUBDIR}")" || {
+            echo "installer page was unreachable"
+            docker logs fc-app | tail -30
+            exit 1
+          }
+          echo "$body" | grep -qi "Family Castel" || {
+            echo "installer page does not identify the app"
+            echo "$body" | head -30
+            docker logs fc-app | tail -30
+            exit 1
+          }
           # The package ships no scripts/ — drive the same Installer service inline:
           docker exec -u www-data fc-app php -r '
             $root = rtrim("/var/www/html/" . "'"$SUBDIR"'", "/");
@@ -232,8 +241,8 @@ jobs:
     needs: [build, clean-install-gate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           name: package
           path: dist
@@ -242,7 +251,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           awk -v v="## [$VERSION]" 'index($0, v) == 1 {flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > notes.md
           test -s notes.md || echo "See CHANGELOG.md" > notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           body_path: notes.md
           files: |

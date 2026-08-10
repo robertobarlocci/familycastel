@@ -63,6 +63,16 @@ sounds — backed by an economy parents can trust.
 
 See [docs/INSTALL.md](docs/INSTALL.md) for details, updating and troubleshooting.
 
+## Updating
+
+Open **Parent area → Updates** to see the installed and latest public release.
+When an update is available, one button downloads the official GitHub ZIP and
+matching SHA256 file, verifies the package, creates a backup, installs it, runs
+migrations, and rolls back automatically if a health check fails.
+
+The newest package can also be downloaded directly from the
+[latest GitHub Release](https://github.com/robertobarlocci/familycastel/releases/latest).
+
 ## Local development
 
 The dev environment (and only the dev environment) uses Docker:

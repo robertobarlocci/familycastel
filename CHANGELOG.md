@@ -3,6 +3,24 @@
 All notable changes to Family Castel are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](https://semver.org/).
 
+## [0.1.1] - 2026-08-10
+
+### Added
+- Phone-first parent navigation with an accessible hamburger menu, large touch
+  targets, active-page states, and a direct entry to the in-app updater.
+- Responsive child dock and layouts for quests, rewards, journal, and settings.
+- Mobile interaction, accessibility, overflow, and visual-regression coverage.
+
+### Fixed
+- Fresh installs now use universal query routing until the installer has tested
+  and saved the host's rewrite capability, fixing no-rewrite subdirectory hosts.
+- Responsive form controls, approval cards, update/status screens, and child
+  theme controls no longer overflow narrow phone viewports.
+
+### Changed
+- GitHub workflows now use the current Node 24-compatible major releases of
+  GitHub's checkout, Node setup, artifact, and release actions.
+
 ## [0.1.0] - 2026-08-10
 
 First complete release.
@@ -34,4 +52,5 @@ First complete release.
 - i18n: German (default) and English.
 - Release pipeline: allowlist-based ZIP builder with per-file SHA256 manifest.
 
+[0.1.1]: https://github.com/robertobarlocci/familycastel/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/robertobarlocci/familycastel/releases/tag/v0.1.0
