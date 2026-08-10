@@ -13,6 +13,7 @@ return [
     'maintenance.update_pending' => 'New files (v{code}) are waiting to finish updating the database (v{db}).',
     'maintenance.finish_update' => 'Finish the update now (parents)',
     'maintenance.body' => 'Family Castel is being updated. The adventure continues in a few minutes!',
+    'maintenance.permissions' => 'The installation\'s file permissions could not be set, so the web server cannot serve the styles and images. Please set 0755 on directories and 0644 on files for the following folders using your hosting file manager:',
 
     'error.404_title' => 'This page is off the map',
     'error.404_body' => 'Nothing to discover here. Return to the castle!',

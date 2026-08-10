@@ -16,6 +16,7 @@ return [
     'maintenance.update_pending' => 'Neue Dateien (v{code}) warten darauf, das Update der Datenbank (v{db}) abzuschliessen.',
     'maintenance.finish_update' => 'Update jetzt abschliessen (Eltern)',
     'maintenance.body' => 'Family Castel wird gerade aktualisiert. In wenigen Minuten geht das Abenteuer weiter!',
+    'maintenance.permissions' => 'Die Dateirechte der Installation lassen sich nicht setzen, darum kann der Webserver die Bilder und Stile nicht ausliefern. Bitte setze im Dateimanager deines Hosters für die folgenden Ordner die Rechte 0755 (Ordner) und 0644 (Dateien):',
 
     // Fehler
     'error.404_title' => 'Diese Seite liegt ausserhalb der Karte',

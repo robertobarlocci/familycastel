@@ -586,7 +586,17 @@ function fc_step_extract(): void
     }
     $zip->close();
 
-    fc_log('Extracted ' . $zip->numFiles . ' entries to staging.');
+    // Give the staged tree explicit web-servable modes BEFORE the swap: the
+    // swap promotes these very inodes with rename(), so whatever mode they
+    // carry here is the mode the live site ends up with. Doing it on staging
+    // (never on the live tree post-swap) means the live tree is never observed
+    // half-normalized. Pre-swap failure = "nothing happened yet": fc_abort
+    // discards staging and releases the lock, no rollback needed.
+    if (!fc_chmod_tree($staging)) {
+        fc_abort('Could not set file permissions on the staged release.');
+    }
+
+    fc_log('Extracted ' . $zip->numFiles . ' entries to staging (modes 0755/0644).');
     fc_advance('stage_verify');
 }
 
@@ -879,7 +889,11 @@ function fc_step_finish(): void
     $liveSelf = FC_UPDATE_ROOT . '/update.php';
     if (is_file($stagedSelf) && hash_file('sha256', $stagedSelf) !== hash_file('sha256', $liveSelf)) {
         $tmpSelf = $liveSelf . '.new';
-        if (@copy($stagedSelf, $tmpSelf) && @rename($tmpSelf, $liveSelf)) {
+        // copy() creates with 0666 & ~umask — under a tight umask that lands
+        // 0600 and Apache can no longer serve /update.php, killing every FUTURE
+        // update including the manual FTP escape hatch. Set the mode explicitly,
+        // and treat a failed chmod exactly like a failed copy: do not promote it.
+        if (@copy($stagedSelf, $tmpSelf) && @chmod($tmpSelf, 0644) && @rename($tmpSelf, $liveSelf)) {
             fc_log('Updater executor replaced with the release version.');
         } else {
             @unlink($tmpSelf);
@@ -1035,10 +1049,21 @@ function fc_restore_removed(string $backupDir): bool
         $relative = substr($item->getPathname(), strlen($removedRoot) + 1);
         $dest = FC_UPDATE_ROOT . '/' . $relative;
         if ($item->isDir()) {
-            if (!is_dir($dest) && !@mkdir($dest, 0770, true)) {
+            // Directories this call creates land in the LIVE tree, so they get
+            // the same explicit 0755 as a swapped entry (mkdir's mode is umask-
+            // masked, chmod's is not). A failed chmod must fail the restore:
+            // $ok drives fc_rollback_*'s fail-closed decision, and a rollback
+            // that reopens the site on a half-restored tree is the bug this
+            // aggregate exists to prevent. A destination that already exists
+            // keeps its own mode — re-moding live directories this call never
+            // created would destroy pre-update state on a rollback path.
+            if (!is_dir($dest) && (!@mkdir($dest, 0755, true) || !@chmod($dest, 0755))) {
                 $ok = false;
             }
         } elseif (!file_exists($dest) && !@rename($item->getPathname(), $dest)) {
+            // Restored FILES are deliberately not chmodded: these are the
+            // original live inodes the swap moved into previous/__removed__/,
+            // so the rename restores their exact pre-update mode.
             $ok = false;
         }
     }
@@ -1119,6 +1144,49 @@ function fc_abort(string $reason): never
     fc_maintenance(false);
     fc_ops_lock_release();
     fc_fail($reason, 500);
+}
+
+/**
+ * Give every entry under $root an EXPLICIT web-servable mode: directories
+ * 0755, files 0644 — exactly the state a fresh unzip-based install produces
+ * (the release ZIP stores no unix modes, so unzip applies its own defaults).
+ *
+ * Modes must never be INHERITED here. mkdir()/file_put_contents() are masked
+ * by the host's ambient umask, and the swap promotes the staged inode with
+ * rename() — so a staged 0750 directory becomes a live directory the static
+ * file server cannot traverse wherever Apache serves assets as a different
+ * uid than PHP (the shared-hosting norm this product targets). chmod() is not
+ * masked by umask, which makes the result host-independent.
+ *
+ * Symlinks are SKIPPED, never followed: chmod() resolves them, which would
+ * change a file outside the staged tree. The extractor writes only regular
+ * files and the release builder refuses to package symlinks, so encountering
+ * one means something is already wrong.
+ *
+ * Idempotent — safe to re-run on a resumed step.
+ *
+ * @return bool true only when EVERY chmod provably succeeded.
+ */
+function fc_chmod_tree(string $root): bool
+{
+    if (is_link($root) || !is_dir($root)) {
+        return false;
+    }
+    $ok = (bool) @chmod($root, 0755);
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($iterator as $item) {
+        if ($item->isLink()) {
+            continue;
+        }
+        if (!@chmod($item->getPathname(), $item->isDir() ? 0755 : 0644)) {
+            $ok = false;
+        }
+    }
+
+    return $ok;
 }
 
 function fc_rrmdir(string $dir): void
