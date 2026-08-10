@@ -30,6 +30,48 @@ BasePath::set(BasePath::detect((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'
 I18n::init(__DIR__ . '/lang', (string) $config->get('app.locale', I18n::DEFAULT_LOCALE));
 date_default_timezone_set((string) $config->get('app.timezone', 'UTC'));
 
+// Manual-FTP-update boot gate (plan §9): when the CODE version differs from
+// the recorded app version, no request may run on mixed code/schema. Parents
+// keep a narrow path to finish the update; everything else gets the 503.
+if ($config->isInstalled()) {
+    try {
+        $gateDb = FamilyCastel\Core\Db::fromConfig($config);
+        $row = $gateDb->fetchOne('SELECT `value` FROM settings WHERE `key` = ?', ['app.version']);
+        if ($row === null) {
+            // Legacy install predating the gate: no comparison possible.
+            $recorded = FC_VERSION;
+        } else {
+            $decoded = json_decode((string) $row['value'], true);
+            // Malformed value = FAIL CLOSED (treat as mismatch, never as OK).
+            $recorded = is_string($decoded) && $decoded !== '' ? $decoded : '0-malformed';
+        }
+        if ($recorded !== FC_VERSION) {
+            // EXACT route match after base-path stripping — no suffix tricks.
+            $path = FamilyCastel\Core\Router::resolvePath(
+                (string) ($_SERVER['REQUEST_URI'] ?? '/'),
+                FamilyCastel\Core\BasePath::get(),
+                $_GET
+            );
+            $allowed = ['/login', '/logout', '/parent/settings/updates', '/parent/settings/updates/check', '/parent/settings/updates/start-manual'];
+            if (!in_array($path, $allowed, true)) {
+                http_response_code(503);
+                header('Retry-After: 300');
+                header('Content-Type: text/html; charset=UTF-8');
+                echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                    . '<title>Family Castel</title>'
+                    . '<style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;background:#1a1f3c;color:#fff}'
+                    . 'div{text-align:center;max-width:28rem;padding:1rem}a{color:#9be564}</style>'
+                    . '<div><h1>🏰🔧</h1><h2>' . e(t('maintenance.title')) . '</h2>'
+                    . '<p>' . e(t('maintenance.update_pending', ['code' => FC_VERSION, 'db' => $recorded])) . '</p>'
+                    . '<p><a href="' . e(url('/parent/settings/updates')) . '">' . e(t('maintenance.finish_update')) . '</a></p></div>';
+                exit;
+            }
+        }
+    } catch (Throwable) {
+        // Gate check must never take the site down harder than the problem itself.
+    }
+}
+
 // Maintenance mode: friendly 503 before anything else touches the app.
 if (is_file(__DIR__ . '/storage/maintenance.flag')) {
     http_response_code(503);

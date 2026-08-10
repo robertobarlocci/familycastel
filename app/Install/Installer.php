@@ -157,6 +157,7 @@ final class Installer
     private function seedSettings(Db $db, array $family): void
     {
         $defaults = [
+            'app.version' => trim((string) @file_get_contents(dirname($this->configDir) . '/VERSION')) ?: '0.0.0',
             'family.name' => $family['name'],
             'app.locale' => $family['locale'],
             'app.timezone' => $family['timezone'],

@@ -27,6 +27,7 @@
         <a href="<?= e(url('/parent/milestones')) ?>"><?= e(t('nav.milestones')) ?></a>
         <a href="<?= e(url('/parent/children')) ?>"><?= e(t('nav.children')) ?></a>
         <a href="<?= e(url('/parent/templates')) ?>"><?= e(t('nav.templates')) ?></a>
+        <a href="<?= e(url('/parent/settings/status')) ?>"><?= e(t('nav.system')) ?></a>
     </nav>
     <form method="post" action="<?= e(url('/logout')) ?>" class="topbar-logout">
         <?= \FamilyCastel\Core\Csrf::field() ?>

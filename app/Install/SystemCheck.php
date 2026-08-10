@@ -116,6 +116,7 @@ final class SystemCheck
         if (@file_put_contents($controlFile, $nonce) === false
             || @file_put_contents($probeFile, 'probe') === false) {
             @unlink($controlFile);
+            @unlink($probeFile);
 
             return ['id' => 'protection', 'label' => $label, 'level' => 'warn', 'detail' => 'Could not create probe files'];
         }

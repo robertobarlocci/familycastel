@@ -183,6 +183,19 @@ $router->post('/parent/milestones/create', $requireParent(fn () => (new \FamilyC
 $router->post('/parent/milestones/{id}/claim', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->claimMilestone((int) $p['id'], $_POST)));
 $router->post('/parent/milestones/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\QuestAdminController($lazyDb(), $view))->archiveMilestone((int) $p['id'], $_POST)));
 
+$ops = fn () => new \FamilyCastel\Http\Parent\OpsController($lazyDb(), $view);
+$router->get('/parent/settings/updates', $requireParent(fn () => $ops()->updates()));
+$router->post('/parent/settings/updates/check', $requireParent(fn () => $ops()->checkNow($_POST)));
+$router->post('/parent/settings/updates/start', $requireParent(fn () => $ops()->startUpdate($_POST, $ip)));
+$router->post('/parent/settings/updates/start-manual', $requireParent(fn () => $ops()->startManualUpdate($_POST, $ip)));
+$router->get('/parent/settings/backups', $requireParent(fn () => $ops()->backupsPage()));
+$router->post('/parent/settings/backups/create', $requireParent(fn () => $ops()->createBackup($_POST, $ip)));
+$router->get('/parent/settings/backups/{id}/download', $requireParent(fn (array $p) => $ops()->downloadBackup((string) $p['id'])));
+$router->post('/parent/settings/backups/{id}/delete', $requireParent(fn (array $p) => $ops()->deleteBackup((string) $p['id'], $_POST, $ip)));
+$router->post('/parent/settings/backups/{id}/restore', $requireParent(fn (array $p) => $ops()->restore((string) $p['id'], $_POST, $ip)));
+$router->get('/parent/settings/status', $requireParent(fn () => $ops()->status()));
+$router->get('/parent/settings/diagnostics', $requireParent(fn () => $ops()->diagnostics()));
+
 // ---------------------------------------------------------------- kid area
 $kid = fn () => new \FamilyCastel\Http\Kid\KidController($lazyDb(), $view);
 $router->get('/kid', $requireChild(fn () => $kid()->home()));
