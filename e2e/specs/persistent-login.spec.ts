@@ -196,6 +196,29 @@ test.describe('cookie notice', () => {
     await expect(page).toHaveURL(/\/kid\/journal/);
   });
 
+  /**
+   * The dock case was not the whole problem: a fixed bottom bar also sat on the
+   * END of ordinary parent pages, so the last control — e.g. a form's Save —
+   * could not be tapped on a phone. Reserving space is the fix; this pins it.
+   */
+  test('never blocks the last control on a parent page', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'mobile-viewport behaviour');
+
+    await parentLogin(page);
+    await page.goto('/parent/children/new');
+
+    await expect(page.locator('.cookie-notice')).toBeVisible();
+
+    const submit = page.locator('form.form-card button[type="submit"]').first();
+    await submit.scrollIntoViewIfNeeded();
+
+    const button = await submit.boundingBox();
+    const notice = await page.locator('.cookie-notice').boundingBox();
+    expect(button && notice).toBeTruthy();
+    // The primary action must be fully clear of the notice.
+    expect(button!.y + button!.height).toBeLessThanOrEqual(notice!.y + 1);
+  });
+
   test('appears once and stays dismissed', async ({ page }) => {
     await page.goto('/login');
     const notice = page.locator('.cookie-notice');

@@ -149,6 +149,13 @@ body.parent-app, body.kid-app {
     padding-bottom: .8rem;
     box-shadow: 0 3px 14px rgba(20,18,40,.22);
 }
+/* A fixed bar must never sit ON the end of the page: on a phone the notice
+   covered the last form row, so "Speichern" could not be tapped at all. Reserve
+   room for it while it is on screen — :has() lets the pages that never render it
+   keep their normal spacing. */
+body:has(.cookie-notice) .parent-main,
+body:has(.cookie-notice) .install-wrap { padding-bottom: 13rem; }
+.kid-app:has(.cookie-notice) .kid-main { padding-top: 10rem; }
 
 @media (max-width: 860px) {
     .cookie-notice { justify-content: stretch; }
