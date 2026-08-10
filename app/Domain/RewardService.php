@@ -71,9 +71,9 @@ final class RewardService
      * Child redeems a catalog reward → pending request that RESERVES coins.
      * Affordability is checked under the child row lock (race-free).
      */
-    public function request(int $rewardId, int $childId): int
+    public function request(int $rewardId, int $childId, ?string $requestKey = null): int
     {
-        return WriteGate::transaction($this->db, function (Db $db) use ($rewardId, $childId): int {
+        return WriteGate::transaction($this->db, function (Db $db) use ($rewardId, $childId, $requestKey): int {
             $reward = $db->fetchOne(
                 "SELECT * FROM rewards WHERE id = ? AND status = 'active' FOR UPDATE", [$rewardId]
             );
@@ -88,6 +88,7 @@ final class RewardService
                 (string) $reward['title'],
                 (int) $reward['cost_coins'],
                 $reward['duration_minutes'] !== null ? (int) $reward['duration_minutes'] : null,
+                $requestKey,
             );
         });
     }
@@ -102,6 +103,19 @@ final class RewardService
 
         return WriteGate::transaction($this->db, function (Db $db) use ($childId, $title, $durationMinutes): int {
             return $this->createRequest($db, $childId, null, $title, 0, $durationMinutes);
+        });
+    }
+
+    /** Child proposes a custom reward with a replay nonce. */
+    public function requestCustomKeyed(int $childId, string $title, ?int $durationMinutes, ?string $requestKey): int
+    {
+        $title = trim($title);
+        if ($title === '' || mb_strlen($title) > 190) {
+            throw new \InvalidArgumentException('Please describe your wish (max 190 characters).');
+        }
+
+        return WriteGate::transaction($this->db, function (Db $db) use ($childId, $title, $durationMinutes, $requestKey): int {
+            return $this->createRequest($db, $childId, null, $title, 0, $durationMinutes, $requestKey);
         });
     }
 
@@ -209,6 +223,7 @@ final class RewardService
         string $title,
         int $cost,
         ?int $durationMinutes,
+        ?string $requestKey = null,
     ): int {
         // Child row lock = reservation mutex (same lock the ledger uses).
         $child = $db->fetchOne(
@@ -217,6 +232,19 @@ final class RewardService
         );
         if ($child === null) {
             throw new \InvalidArgumentException('Child not found or archived.');
+        }
+
+        // Form-replay idempotency (quality check Q9): a repeated nonce maps
+        // onto the request it already created — never a second reservation.
+        // Race-safe: same key ⇒ same child ⇒ serialized on the row lock
+        // above; the UNIQUE index is the belt-and-braces backstop.
+        if ($requestKey !== null) {
+            $existing = $db->fetchOne(
+                'SELECT id FROM reward_requests WHERE request_key = ?', [$requestKey]
+            );
+            if ($existing !== null) {
+                return (int) $existing['id'];
+            }
         }
 
         if ($cost > 0) {
@@ -235,9 +263,9 @@ final class RewardService
 
         $db->execute(
             'INSERT INTO reward_requests
-                (reward_id, child_id, title, cost_coins, duration_minutes, status, created_at)
-             VALUES (?, ?, ?, ?, ?, \'pending\', UTC_TIMESTAMP())',
-            [$rewardId, $childId, $title, $cost, $durationMinutes]
+                (reward_id, child_id, title, cost_coins, duration_minutes, request_key, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, \'pending\', UTC_TIMESTAMP())',
+            [$rewardId, $childId, $title, $cost, $durationMinutes, $requestKey]
         );
 
         return $db->lastInsertId();

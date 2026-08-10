@@ -19,6 +19,7 @@
                 <p class="reward-card-cost">🪙 <?= e((string) $reward['cost_coins']) ?></p>
                 <form method="post" action="<?= e(url('/kid/rewards/redeem')) ?>">
                     <?= \FamilyCastel\Core\Csrf::field() ?>
+                    <input type="hidden" name="op" value="<?= eattr(op_nonce()) ?>">
                     <input type="hidden" name="reward_id" value="<?= eattr((string) $reward['id']) ?>">
                     <button type="submit" class="btn-primary" <?= $affordable ? '' : 'disabled' ?>>
                         <?= e($affordable ? t('kidrewards.redeem') : t('kidrewards.save_more')) ?>
@@ -32,6 +33,7 @@
 <h2 class="kid-section-title"><?= e(t('kidrewards.wish_title')) ?></h2>
 <form method="post" action="<?= e(url('/kid/rewards/wish')) ?>" class="form-card kid-form">
     <?= \FamilyCastel\Core\Csrf::field() ?>
+        <input type="hidden" name="op" value="<?= eattr(op_nonce()) ?>">
     <div class="field">
         <label for="w-title"><?= e(t('kidrewards.wish_what')) ?></label>
         <input id="w-title" name="title" type="text" required maxlength="190"

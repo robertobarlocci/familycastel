@@ -57,9 +57,19 @@ final class ChildScreenController
         }
 
         try {
+            $op = op_from_post($post);
             $templates = new TemplateService($this->db);
-            $templates->apply((int) ($post['template_id'] ?? 0), $childId, Auth::parentId());
+            $templates->apply(
+                (int) ($post['template_id'] ?? 0),
+                $childId,
+                Auth::parentId(),
+                idempotencyKey: $op !== null ? 'award:' . Auth::parentId() . ':' . $op : null,
+            );
             (new \FamilyCastel\Domain\AchievementService($this->db, new \FamilyCastel\Domain\NotificationService($this->db)))->sync($childId);
+            Session::flash('success', t('award.template_done'));
+        } catch (\FamilyCastel\Domain\DuplicatePostException) {
+            // Same form nonce again (double-click/replay): the award already
+            // happened exactly once — that IS the success the parent wanted.
             Session::flash('success', t('award.template_done'));
         } catch (WriteLockedException) {
             Session::flash('error', t('common.maintenance'));
@@ -95,7 +105,8 @@ final class ChildScreenController
             // Award + optional template creation are ONE transaction — a
             // template validation failure must never leave a committed award
             // behind (retry would double-post).
-            $this->db->transaction(function () use ($childId, $coins, $xp, $title, $comment, $allowNegative, $post): void {
+            $op = op_from_post($post);
+            $this->db->transaction(function () use ($childId, $coins, $xp, $title, $comment, $allowNegative, $post, $op): void {
                 (new LedgerService($this->db))->post(
                     childId: $childId,
                     coinsDelta: $coins,
@@ -104,6 +115,7 @@ final class ChildScreenController
                     title: $title,
                     actorUserId: Auth::parentId(),
                     comment: $comment,
+                    idempotencyKey: $op !== null ? 'custom:' . Auth::parentId() . ':' . $op : null,
                     allowNegative: $allowNegative,
                 );
 
@@ -118,6 +130,8 @@ final class ChildScreenController
                 }
             });
             (new \FamilyCastel\Domain\AchievementService($this->db, new \FamilyCastel\Domain\NotificationService($this->db)))->sync($childId);
+            Session::flash('success', $coins >= 0 ? t('award.custom_done') : t('award.deduct_done'));
+        } catch (\FamilyCastel\Domain\DuplicatePostException) {
             Session::flash('success', $coins >= 0 ? t('award.custom_done') : t('award.deduct_done'));
         } catch (WriteLockedException) {
             Session::flash('error', t('common.maintenance'));

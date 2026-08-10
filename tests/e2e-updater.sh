@@ -65,6 +65,8 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -r "$SANDBOX"/{index.php,.htaccess,sw.js,offline.html,app,views,public-assets,lang} "$STAGE/"
 echo "9.9.9" > "$STAGE/VERSION"
 cp "$ROOT/update.php" "$STAGE/update.php"
+# The release ships a NEWER executor — finish must self-update update.php.
+echo "// fc-e2e-marker-v9.9.9" >> "$STAGE/update.php"
 # new migration in the release
 cat > "$STAGE/app/Database/Migrations/900_updater_test.php" << 'EOF'
 <?php
@@ -158,6 +160,7 @@ write_journal "$RELEASES/family-castel-v9.9.9.zip"
 drive_until_done || fail "happy path did not finish"
 
 [ "$(cat "$SANDBOX/VERSION")" = "9.9.9" ] || fail "VERSION not swapped"
+grep -q "fc-e2e-marker-v9.9.9" "$SANDBOX/update.php" || fail "update.php did not self-update to the release version"
 [ ! -f "$SANDBOX/offline.html" ] || fail "removed[] file still present"
 [ ! -f "$SANDBOX/storage/maintenance.flag" ] || fail "maintenance flag left behind"
 php -r '

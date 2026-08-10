@@ -21,6 +21,7 @@
             <form method="post" action="<?= e(url('/parent/child/' . eurl((string) $child['id']) . '/award')) ?>"
                   <?= $template['requires_confirm'] ? 'data-confirm="' . eattr(t('award.confirm', ['title' => $template['title']])) . '"' : '' ?>>
                 <?= \FamilyCastel\Core\Csrf::field() ?>
+                <input type="hidden" name="op" value="<?= eattr(op_nonce()) ?>">
                 <input type="hidden" name="template_id" value="<?= eattr((string) $template['id']) ?>">
                 <button type="submit" class="template-btn <?= (int) $template['coins_delta'] < 0 ? 'negative' : '' ?>">
                     <span class="template-btn-title"><?= $template['is_favorite'] ? '⭐ ' : '' ?><?= e($template['title']) ?></span>
@@ -37,6 +38,7 @@
 <h3 class="section-title"><?= e(t('award.custom_title')) ?></h3>
 <form method="post" action="<?= e(url('/parent/child/' . eurl((string) $child['id']) . '/custom')) ?>" class="form-card award-form">
     <?= \FamilyCastel\Core\Csrf::field() ?>
+    <input type="hidden" name="op" value="<?= eattr(op_nonce()) ?>">
     <div class="field">
         <label for="title"><?= e(t('award.what')) ?></label>
         <input id="title" name="title" type="text" required maxlength="190"

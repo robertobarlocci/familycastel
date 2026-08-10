@@ -108,9 +108,9 @@ final class TemplateService
      * lock — a concurrent archive/edit cannot slip between check and post
      * (global lock order: gate → point_templates → children → transactions).
      */
-    public function apply(int $templateId, int $childId, ?int $actorUserId): int
+    public function apply(int $templateId, int $childId, ?int $actorUserId, ?string $idempotencyKey = null): int
     {
-        return WriteGate::transaction($this->db, function (Db $db) use ($templateId, $childId, $actorUserId): int {
+        return WriteGate::transaction($this->db, function (Db $db) use ($templateId, $childId, $actorUserId, $idempotencyKey): int {
             $template = $db->fetchOne(
                 'SELECT * FROM point_templates WHERE id = ? FOR UPDATE',
                 [$templateId]
@@ -134,6 +134,7 @@ final class TemplateService
                 actorUserId: $actorUserId,
                 sourceType: 'point_template',
                 sourceId: $templateId,
+                idempotencyKey: $idempotencyKey,
             );
         });
     }

@@ -868,6 +868,25 @@ function fc_step_finish(): void
     $journal['status'] = 'success';
     fc_journal_write($journal);
 
+    // Post-commit SELF-UPDATE of the executor (quality check Q3): update.php
+    // is deliberately excluded from the swap (never replace the running
+    // step machine mid-run), so the new release's copy is installed HERE —
+    // after the commit point, when this request no longer reads the file
+    // (PHP has it fully loaded). Verified by stage_verify against the
+    // manifest like every other file. Non-fatal: a failed copy leaves the
+    // current (working) executor in place, which is the status quo.
+    $stagedSelf = FC_UPDATE_ROOT . '/storage/updates/staging/update.php';
+    $liveSelf = FC_UPDATE_ROOT . '/update.php';
+    if (is_file($stagedSelf) && hash_file('sha256', $stagedSelf) !== hash_file('sha256', $liveSelf)) {
+        $tmpSelf = $liveSelf . '.new';
+        if (@copy($stagedSelf, $tmpSelf) && @rename($tmpSelf, $liveSelf)) {
+            fc_log('Updater executor replaced with the release version.');
+        } else {
+            @unlink($tmpSelf);
+            fc_log('WARNING: could not replace update.php — the previous executor stays active.');
+        }
+    }
+
     // Post-commit cleanup — strictly non-fatal.
     fc_rrmdir(FC_UPDATE_ROOT . '/storage/updates/staging');
     @unlink(FC_UPDATE_ROOT . '/storage/updates/release.zip');

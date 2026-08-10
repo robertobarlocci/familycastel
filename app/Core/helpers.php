@@ -65,3 +65,21 @@ if (!function_exists('t')) {
         return I18n::translate($key, $params);
     }
 }
+
+if (!function_exists('op_nonce')) {
+    /** One-time form nonce for coin-bearing operations (replay idempotency). */
+    function op_nonce(): string
+    {
+        return bin2hex(random_bytes(8));
+    }
+}
+
+if (!function_exists('op_from_post')) {
+    /** Validated operation nonce from a POST body, or null when absent/odd. */
+    function op_from_post(array $post): ?string
+    {
+        $op = (string) ($post['op'] ?? '');
+
+        return preg_match('/^[a-f0-9]{16,64}$/', $op) === 1 ? $op : null;
+    }
+}

@@ -217,7 +217,12 @@ final class KidController
     {
         if (Csrf::validate($post['_csrf'] ?? null)) {
             try {
-                (new RewardService($this->db))->request((int) ($post['reward_id'] ?? 0), $this->childId());
+                $op = op_from_post($post);
+                (new RewardService($this->db))->request(
+                    (int) ($post['reward_id'] ?? 0),
+                    $this->childId(),
+                    requestKey: $op !== null ? 'req:' . $this->childId() . ':' . $op : null,
+                );
                 Session::flash('success', t('kidrewards.requested'));
             } catch (InsufficientCoinsException) {
                 Session::flash('error', t('kidrewards.error_insufficient'));
@@ -235,10 +240,12 @@ final class KidController
     {
         if (Csrf::validate($post['_csrf'] ?? null)) {
             try {
-                (new RewardService($this->db))->requestCustom(
+                $op = op_from_post($post);
+                (new RewardService($this->db))->requestCustomKeyed(
                     $this->childId(),
                     (string) ($post['title'] ?? ''),
                     ($post['duration_minutes'] ?? '') !== '' ? (int) $post['duration_minutes'] : null,
+                    $op !== null ? 'wish:' . $this->childId() . ':' . $op : null,
                 );
                 Session::flash('success', t('kidrewards.wished'));
             } catch (WriteLockedException) {
