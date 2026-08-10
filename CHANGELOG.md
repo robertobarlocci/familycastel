@@ -3,6 +3,21 @@
 All notable changes to Family Castel are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- The in-app updater now installs the new release with explicit, web-servable file
+  modes (directories 0755, files 0644 — the same state a fresh install produces).
+  Previously the staged tree inherited the host's umask and the swap carried that
+  mode into the live tree, so on hosting where Apache serves static files as a
+  different user than PHP the whole `public-assets/` tree became unreadable and the
+  site rendered without any CSS, fonts or JavaScript after updating.
+- The updater's post-update replacement of `update.php` now sets its mode
+  explicitly, so a restrictive umask can no longer leave the executor unreadable by
+  the web server and block all future updates.
+- A rollback that restores retired files now creates directories with the correct
+  mode and fails closed if it cannot.
+
 ## [0.1.1] - 2026-08-10
 
 ### Added
