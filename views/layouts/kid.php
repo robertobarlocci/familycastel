@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="<?= e(url('/public-assets/css/app.css')) ?>">
     <link rel="stylesheet" href="<?= e(url('/public-assets/css/kid.css')) ?>">
 </head>
-<body class="kid-app theme-<?= eattr($child['theme'] ?? 'fantasy') ?>" data-sound="<?= !empty($child['sound_enabled']) ? '1' : '0' ?>" data-base="<?= eattr(url('/')) ?>">
+<body class="kid-app theme-<?= eattr($child['theme'] ?? 'fantasy') ?>" data-sound="<?= !empty($child['sound_enabled']) ? '1' : '0' ?>" data-sw="<?= eattr(url('/sw.js')) ?>">
 <main class="kid-main">
     <?php foreach (\FamilyCastel\Core\Session::takeFlashes() as $flash): ?>
         <div class="flash flash-<?= e($flash['type']) ?>" role="status">

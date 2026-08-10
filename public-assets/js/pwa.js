@@ -4,11 +4,14 @@
     'use strict';
 
     if ('serviceWorker' in navigator) {
-        // A page-relative 'sw.js' would resolve wrongly on nested routes —
-        // the layout provides the app base explicitly.
-        var base = document.body.dataset.base || '/';
-        navigator.serviceWorker.register(base + 'sw.js').catch(function () {
-            // PWA is progressive enhancement — never break the page over it.
-        });
+        // The layout provides the COMPLETE sw.js URL (subdirectory-safe and
+        // correct in ?r= fallback mode, where concatenating onto a routed
+        // base would produce a routed — and 404ing — sw.js path).
+        var swUrl = document.body.dataset.sw;
+        if (swUrl) {
+            navigator.serviceWorker.register(swUrl).catch(function () {
+                // PWA is progressive enhancement — never break the page over it.
+            });
+        }
     }
 })();

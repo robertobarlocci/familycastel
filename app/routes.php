@@ -76,6 +76,25 @@ $requireChild = function (callable $handler) use ($requireInstalled, $lazyDb): c
 };
 
 // ---------------------------------------------------------------- public
+// Rewrite-capability probe: reachable under its PRETTY path only when
+// mod_rewrite routes it here — the installer uses this to decide between
+// pretty URLs and the ?r= fallback. Static marker, no state, no auth.
+$router->get('/__fc/rewrite-probe', function (): string {
+    header('Content-Type: text/plain; charset=UTF-8');
+    header('Cache-Control: no-store');
+
+    return 'fc-rewrite-ok';
+});
+
+// Browsers request /favicon.ico unconditionally — answer with the castle
+// icon instead of littering every session with 404s.
+$router->get('/favicon.ico', function (): string {
+    header('Location: ' . url('/public-assets/icons/icon.svg'), true, 302);
+    header('Cache-Control: public, max-age=86400');
+
+    return '';
+});
+
 $router->get('/manifest.webmanifest', function (): string {
     header('Content-Type: application/manifest+json');
 

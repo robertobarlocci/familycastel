@@ -1,0 +1,13 @@
+{
+  "name": "family-castel-e2e",
+  "private": true,
+  "description": "Playwright end-to-end suites for Family Castel (dev/CI only \u2014 never shipped)",
+  "scripts": {
+    "test": "playwright test",
+    "screenshots": "playwright test specs/screenshots.spec.ts --project=mobile --project=desktop",
+    "reset-throttle": "docker compose -f ../docker/compose.yaml exec -T app php -r \"(new PDO('mysql:host=db;dbname=familycastel','fc','fc-dev-password'))->exec('DELETE FROM login_attempts WHERE success = 0');\""
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

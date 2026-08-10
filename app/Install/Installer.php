@@ -179,6 +179,47 @@ final class Installer
     }
 
     /** @param array<string, mixed> $params */
+    /**
+     * Loopback probe of the PRETTY route /__fc/rewrite-probe: only mod_rewrite
+     * can deliver it. Inconclusive (loopback blocked) defaults to pretty —
+     * the overwhelmingly common hosting reality; ?r= links always work as a
+     * manual escape hatch either way. Ports mirror SystemCheck: SERVER_PORT
+     * lies behind port mappings, so the scheme default is tried too.
+     */
+    private function detectPrettyUrls(): bool
+    {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        $scheme = $https ? 'https' : 'http';
+        $ports = array_values(array_unique(array_filter([
+            (int) ($_SERVER['SERVER_PORT'] ?? 0),
+            $https ? 443 : 80,
+        ])));
+        $base = \FamilyCastel\Core\BasePath::get();
+
+        foreach ($ports as $port) {
+            $ch = curl_init($scheme . '://127.0.0.1:' . $port . $base . '/__fc/rewrite-probe');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_CONNECTTIMEOUT => 3,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+            ]);
+            $body = curl_exec($ch);
+            $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            curl_close($ch);
+            if ($status === 200 && is_string($body)) {
+                return trim($body) === 'fc-rewrite-ok';
+            }
+            if ($status === 404) {
+                return false; // Apache answered directly: no rewriting
+            }
+        }
+
+        return true; // inconclusive loopback — assume the common case
+    }
+
     private function writeConfig(array $params, string $secret): void
     {
         $config = [
@@ -195,6 +236,8 @@ final class Installer
                 'timezone' => $params['family']['timezone'],
                 'debug' => false,
                 'secret' => $secret,
+                // Hosts without mod_rewrite get ?r= links everywhere.
+                'pretty_urls' => $this->detectPrettyUrls(),
             ],
         ];
 

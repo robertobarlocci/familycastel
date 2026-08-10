@@ -3,7 +3,7 @@
 <nav class="journal-filters" aria-label="<?= eattr(t('journal.filters_label')) ?>">
     <?php foreach ($filters as $f): ?>
         <a class="journal-filter <?= $f === $filter ? 'active' : '' ?>"
-           href="<?= e(url('/kid/journal')) ?>?filter=<?= eurl($f) ?>"><?= e(t('journal.filter_' . $f)) ?></a>
+           href="<?= e(url('/kid/journal?filter=' . $f)) ?>"><?= e(t('journal.filter_' . $f)) ?></a>
     <?php endforeach; ?>
 </nav>
 

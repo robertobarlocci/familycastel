@@ -9,11 +9,13 @@
 #   3. rollback    — failing migration restores files AND database exactly
 set -euo pipefail
 
-ROOT=/var/www/html
-SANDBOX=/tmp/fc-updater-sandbox
-RELEASES=/tmp/fc-updater-releases
-PORT=8099
+ROOT="${FC_APP_ROOT:-/var/www/html}"
+SANDBOX="${FC_E2E_SANDBOX:-/tmp/fc-updater-sandbox}"
+RELEASES="${FC_E2E_RELEASES:-/tmp/fc-updater-releases}"
+PORT="${FC_E2E_PORT:-8099}"
 DBNAME=familycastel_updtest
+DBHOST="${FC_TEST_DB_HOST:-db}"
+DBROOTPW="${FC_TEST_DB_ROOT_PASSWORD:-root-dev-password}"
 
 say() { echo "== $*"; }
 fail() { echo "FAIL: $*" >&2; kill %1 2>/dev/null || true; exit 1; }
@@ -27,7 +29,7 @@ cp -r index.php update.php .htaccess sw.js offline.html VERSION app views public
 mkdir -p "$SANDBOX/config" "$SANDBOX"/storage/{logs,cache,backups,updates,uploads}
 
 php -r '
-$pdo = new PDO("mysql:host=db", "root", "root-dev-password");
+$pdo = new PDO("mysql:host='"$DBHOST"'", "root", "'"$DBROOTPW"'");
 $pdo->exec("DROP DATABASE IF EXISTS '"$DBNAME"'");
 $pdo->exec("CREATE DATABASE '"$DBNAME"' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 $pdo->exec("GRANT ALL ON '"$DBNAME"'.* TO \"fc\"@\"%\"");
@@ -37,7 +39,7 @@ echo "db ready\n";
 
 cat > "$SANDBOX/config/config.php" << EOF
 <?php return [
-    'db' => ['host' => 'db', 'port' => 3306, 'name' => '$DBNAME', 'user' => 'fc', 'password' => 'fc-dev-password', 'prefix' => ''],
+    'db' => ['host' => '$DBHOST', 'port' => 3306, 'name' => '$DBNAME', 'user' => 'fc', 'password' => 'fc-dev-password', 'prefix' => ''],
     'app' => ['locale' => 'de', 'timezone' => 'UTC', 'debug' => false, 'secret' => str_repeat('ab', 32)],
 ];
 EOF
@@ -48,7 +50,7 @@ define("FC_ROOT", "'"$SANDBOX"'");
 require "'"$SANDBOX"'/app/Core/Autoloader.php";
 FamilyCastel\Core\Autoloader::register("'"$SANDBOX"'/app");
 require "'"$SANDBOX"'/app/Core/helpers.php";
-$db = FamilyCastel\Core\Db::fromParams("db", 3306, "'"$DBNAME"'", "fc", "fc-dev-password");
+$db = FamilyCastel\Core\Db::fromParams("'"$DBHOST"'", 3306, "'"$DBNAME"'", "fc", "fc-dev-password");
 (new FamilyCastel\Database\Migrator($db, "'"$SANDBOX"'/app/Database/Migrations"))->migrate();
 $db->execute("INSERT INTO children (name, theme, created_at, updated_at) VALUES (\"Emma\", \"fantasy\", UTC_TIMESTAMP(), UTC_TIMESTAMP())");
 (new FamilyCastel\Domain\LedgerService($db))->post(1, 42, 42, "award", "Pre-update coins");
@@ -159,7 +161,7 @@ drive_until_done || fail "happy path did not finish"
 [ ! -f "$SANDBOX/offline.html" ] || fail "removed[] file still present"
 [ ! -f "$SANDBOX/storage/maintenance.flag" ] || fail "maintenance flag left behind"
 php -r '
-$pdo = new PDO("mysql:host=db;dbname='"$DBNAME"'", "fc", "fc-dev-password");
+$pdo = new PDO("mysql:host='"$DBHOST"';dbname='"$DBNAME"'", "fc", "fc-dev-password");
 $gate = $pdo->query("SELECT write_locked FROM ops_state WHERE id=1")->fetch()[0];
 if ((int) $gate !== 0) { fwrite(STDERR, "gate left locked\n"); exit(1); }
 $marker = $pdo->query("SHOW TABLES LIKE \"updater_test_marker\"")->fetch();
@@ -240,7 +242,7 @@ $zip->close();
 
 # baseline data before the failed update
 php -r '
-$pdo = new PDO("mysql:host=db;dbname='"$DBNAME"'", "fc", "fc-dev-password");
+$pdo = new PDO("mysql:host='"$DBHOST"';dbname='"$DBNAME"'", "fc", "fc-dev-password");
 $pdo->exec("UPDATE children SET coin_balance = 777 WHERE id = 1");
 '
 echo -n "$TOKEN" > "$SANDBOX/storage/updates/auth-token"
@@ -251,9 +253,9 @@ file_put_contents("'"$SANDBOX"'/storage/updates/state.json", json_encode([
     "from_version" => "9.9.9",
     "target" => [
         "version" => "9.9.10",
-        "zip_url" => "file:///tmp/fc-updater-releases/family-castel-v9.9.10.zip",
-        "sha256_url" => "file:///tmp/fc-updater-releases/family-castel-v9.9.10.zip.sha256",
-        "size" => filesize("/tmp/fc-updater-releases/family-castel-v9.9.10.zip"),
+        "zip_url" => "file://" . "'"$RELEASES"'/family-castel-v9.9.10.zip",
+        "sha256_url" => "file://" . "'"$RELEASES"'/family-castel-v9.9.10.zip.sha256",
+        "size" => filesize("'"$RELEASES"'/family-castel-v9.9.10.zip"),
     ],
     "log" => [],
 ], JSON_PRETTY_PRINT));'
@@ -262,7 +264,7 @@ grep -q '"status": "rolled_back"' "$SANDBOX/storage/updates/state.json" || fail 
 [ "$(cat "$SANDBOX/VERSION")" = "9.9.9" ] || fail "files not rolled back (VERSION=$(cat "$SANDBOX/VERSION"))"
 [ ! -f "$SANDBOX/storage/maintenance.flag" ] || fail "maintenance left on after rollback"
 php -r '
-$pdo = new PDO("mysql:host=db;dbname='"$DBNAME"'", "fc", "fc-dev-password");
+$pdo = new PDO("mysql:host='"$DBHOST"';dbname='"$DBNAME"'", "fc", "fc-dev-password");
 $coins = $pdo->query("SELECT coin_balance FROM children WHERE id=1")->fetch()[0];
 if ((int) $coins !== 777) { fwrite(STDERR, "DB not restored exactly: coins=$coins\n"); exit(1); }
 $half = $pdo->query("SHOW TABLES LIKE \"half_done\"")->fetch();

@@ -121,17 +121,28 @@ final class SystemCheck
             return ['id' => 'protection', 'label' => $label, 'level' => 'warn', 'detail' => 'Could not create probe files'];
         }
 
+        $control = null;
+        $subject = null;
         try {
             // GET, not HEAD — method-specific deny rules must not fool us.
-            $control = $this->selfRequest('/public-assets/' . $controlName);
-            $subject = $this->selfRequest('/storage/' . $probeName);
+            // SERVER_PORT follows the Host header on Apache (UseCanonicalName
+            // Off), which lies behind port-mapped proxies/containers — so try
+            // the scheme-default port as a fallback and require the CONTROL
+            // to prove whichever port actually reaches this installation.
+            foreach ($this->loopbackPorts() as $port) {
+                $control = $this->selfRequest('/public-assets/' . $controlName, $port);
+                if ($control !== null && $control['status'] === 200 && trim($control['body']) === $nonce) {
+                    $subject = $this->selfRequest('/storage/' . $probeName, $port);
+                    break;
+                }
+                $control = null;
+            }
         } finally {
             @unlink($controlFile);
             @unlink($probeFile);
         }
 
-        $controlOk = $control !== null && $control['status'] === 200 && trim($control['body']) === $nonce;
-        if (!$controlOk || $subject === null) {
+        if ($control === null || $subject === null) {
             return [
                 'id' => 'protection',
                 'label' => $label,
@@ -161,10 +172,18 @@ final class SystemCheck
         ];
     }
 
-    /** @return array{status: int, body: string}|null */
-    private function selfRequest(string $path): ?array
+    /** @return list<int> candidate loopback ports, most likely first */
+    private function loopbackPorts(): array
     {
-        $port = (int) ($_SERVER['SERVER_PORT'] ?? 80);
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        $ports = [(int) ($_SERVER['SERVER_PORT'] ?? 0), $https ? 443 : 80];
+
+        return array_values(array_unique(array_filter($ports)));
+    }
+
+    /** @return array{status: int, body: string}|null */
+    private function selfRequest(string $path, int $port): ?array
+    {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $base = \FamilyCastel\Core\BasePath::get();
         // Plain loopback — deliberately NO Host header derived from the request.
