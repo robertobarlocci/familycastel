@@ -13,6 +13,7 @@ declare(strict_types=1);
 use FamilyCastel\Core\Auth;
 use FamilyCastel\Core\Config;
 use FamilyCastel\Core\Db;
+use FamilyCastel\Core\RememberLogin;
 use FamilyCastel\Core\Router;
 use FamilyCastel\Core\Session;
 use FamilyCastel\Core\View;
@@ -24,14 +25,18 @@ $lazyDb = function () use (&$db, $config): Db {
 $view = new View(FC_ROOT . '/views');
 $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 
-$requireInstalled = function (callable $handler) use ($config): callable {
-    return function (array $params) use ($handler, $config): string {
+$requireInstalled = function (callable $handler) use ($config, $lazyDb): callable {
+    return function (array $params) use ($handler, $config, $lazyDb): string {
         if (!$config->isInstalled()) {
             header('Location: ' . url('/install'), true, 302);
 
             return '';
         }
         Session::start();
+        // The single point where identity is established, so the single place a
+        // "stay signed in" cookie can restore it. No-op (and no query) when the
+        // session already carries a principal.
+        RememberLogin::restore($lazyDb());
 
         return $handler($params);
     };
@@ -47,13 +52,54 @@ $requireParent = function (callable $handler) use ($requireInstalled, $lazyDb): 
         ) !== null;
 
         if (!$eligible) {
-            Auth::logout();
+            // Only destroy the device token when a PARENT session really lost
+            // its eligibility (deactivated). If there is no parent principal at
+            // all we are just the wrong door — a signed-in child following a
+            // /parent link — and revoking here would throw away their valid
+            // 400-day login for a mistaken tap.
+            if (Auth::parentId() !== null) {
+                RememberLogin::forget($lazyDb());
+                Auth::logout();
+            }
             header('Location: ' . url('/login'), true, 302);
 
             return '';
         }
 
         return $handler($params);
+    });
+};
+
+/**
+ * Step-up guard for the operations that are irreversible or that disclose the
+ * whole installation. A persistent login keeps the family signed in for everyday
+ * use; it deliberately does NOT carry the authority to wipe, restore, update or
+ * download the database, so those routes want the password again.
+ *
+ * POSTs are refused rather than queued and replayed after re-auth: replaying a
+ * stored destructive POST across an authentication boundary is a far worse
+ * failure mode than one extra click.
+ */
+$requireRecentAuth = function (callable $handler) use (&$requireParent): callable {
+    return $requireParent(function (array $params) use ($handler): string {
+        if (RememberLogin::hasRecentPassword()) {
+            return $handler($params);
+        }
+
+        $path = Router::resolvePath(
+            (string) ($_SERVER['REQUEST_URI'] ?? '/parent'),
+            \FamilyCastel\Core\BasePath::get(),
+            $_GET
+        );
+        // Only remember a GET target: a POST must be re-issued by the parent,
+        // never replayed by us.
+        RememberLogin::rememberReturnPath(
+            ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' ? $path : '/parent/settings/backups'
+        );
+        Session::flash('error', t('auth.confirm_required'));
+        header('Location: ' . url('/parent/confirm-password'), true, 302);
+
+        return '';
     });
 };
 
@@ -65,7 +111,13 @@ $requireChild = function (callable $handler) use ($requireInstalled, $lazyDb): c
         ) !== null;
 
         if (!$eligible) {
-            Auth::logout();
+            // Same reasoning as the parent guard: revoke only when a CHILD
+            // session lost its eligibility (archived). A signed-in parent who
+            // opens /kid must keep their own token.
+            if (Auth::childId() !== null) {
+                RememberLogin::forget($lazyDb());
+                Auth::logout();
+            }
             header('Location: ' . url('/kid/login'), true, 302);
 
             return '';
@@ -153,6 +205,13 @@ $router->post('/install', $installHandler);
 $router->get('/login', $requireInstalled(fn () => (new \FamilyCastel\Http\AuthController($lazyDb(), $view))->showLogin()));
 $router->post('/login', $requireInstalled(fn () => (new \FamilyCastel\Http\AuthController($lazyDb(), $view))->login($_POST, $ip)));
 $router->post('/logout', $requireInstalled(fn () => (new \FamilyCastel\Http\AuthController($lazyDb(), $view))->logout($_POST, $ip)));
+// Cookie notice dismissal — available to anyone with a session (the notice is
+// shown on the login page too), CSRF-protected, no user-controlled redirect.
+$router->post('/cookie-notice', $requireInstalled(fn () => (new \FamilyCastel\Http\CookieNoticeController())->dismiss($_POST)));
+// Step-up re-authentication. Guarded by $requireParent (not $requireRecentAuth —
+// that would be circular): you must already be signed in to confirm a password.
+$router->get('/parent/confirm-password', $requireParent(fn () => (new \FamilyCastel\Http\AuthController($lazyDb(), $view))->confirmPasswordForm()));
+$router->post('/parent/confirm-password', $requireParent(fn () => (new \FamilyCastel\Http\AuthController($lazyDb(), $view))->confirmPassword($_POST, $ip)));
 
 $router->get('/kid/login', $requireInstalled(fn () => (new \FamilyCastel\Http\KidLoginController($lazyDb(), $view))->picker()));
 $router->post('/kid/login', $requireInstalled(fn () => (new \FamilyCastel\Http\KidLoginController($lazyDb(), $view))->pin($_POST, $ip)));
@@ -205,15 +264,15 @@ $router->post('/parent/milestones/{id}/archive', $requireParent(fn (array $p) =>
 $ops = fn () => new \FamilyCastel\Http\Parent\OpsController($lazyDb(), $view);
 $router->get('/parent/settings/updates', $requireParent(fn () => $ops()->updates()));
 $router->post('/parent/settings/updates/check', $requireParent(fn () => $ops()->checkNow($_POST)));
-$router->post('/parent/settings/updates/start', $requireParent(fn () => $ops()->startUpdate($_POST, $ip)));
-$router->post('/parent/settings/updates/start-manual', $requireParent(fn () => $ops()->startManualUpdate($_POST, $ip)));
+$router->post('/parent/settings/updates/start', $requireRecentAuth(fn () => $ops()->startUpdate($_POST, $ip)));
+$router->post('/parent/settings/updates/start-manual', $requireRecentAuth(fn () => $ops()->startManualUpdate($_POST, $ip)));
 $router->get('/parent/settings/backups', $requireParent(fn () => $ops()->backupsPage()));
-$router->post('/parent/settings/backups/create', $requireParent(fn () => $ops()->createBackup($_POST, $ip)));
-$router->get('/parent/settings/backups/{id}/download', $requireParent(fn (array $p) => $ops()->downloadBackup((string) $p['id'])));
-$router->post('/parent/settings/backups/{id}/delete', $requireParent(fn (array $p) => $ops()->deleteBackup((string) $p['id'], $_POST, $ip)));
-$router->post('/parent/settings/backups/{id}/restore', $requireParent(fn (array $p) => $ops()->restore((string) $p['id'], $_POST, $ip)));
+$router->post('/parent/settings/backups/create', $requireRecentAuth(fn () => $ops()->createBackup($_POST, $ip)));
+$router->get('/parent/settings/backups/{id}/download', $requireRecentAuth(fn (array $p) => $ops()->downloadBackup((string) $p['id'])));
+$router->post('/parent/settings/backups/{id}/delete', $requireRecentAuth(fn (array $p) => $ops()->deleteBackup((string) $p['id'], $_POST, $ip)));
+$router->post('/parent/settings/backups/{id}/restore', $requireRecentAuth(fn (array $p) => $ops()->restore((string) $p['id'], $_POST, $ip)));
 $router->get('/parent/settings/status', $requireParent(fn () => $ops()->status()));
-$router->get('/parent/settings/diagnostics', $requireParent(fn () => $ops()->diagnostics()));
+$router->get('/parent/settings/diagnostics', $requireRecentAuth(fn () => $ops()->diagnostics()));
 
 // ---------------------------------------------------------------- kid area
 $kid = fn () => new \FamilyCastel\Http\Kid\KidController($lazyDb(), $view);

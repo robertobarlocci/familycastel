@@ -63,6 +63,7 @@ $currentAttr = static fn (string $path, bool $prefix = false): string => $isCurr
     <?php endforeach; ?>
     <?= $content ?>
 </main>
+<?php require __DIR__ . '/../partials/_cookie_notice.php'; ?>
 <script src="<?= e(asset('/public-assets/js/navigation.js')) ?>"></script>
 </body>
 </html>

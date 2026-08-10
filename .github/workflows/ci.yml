@@ -134,7 +134,7 @@ jobs:
         working-directory: e2e
         env:
           FC_BASE_URL: http://localhost:8090
-        run: npx playwright test specs/auth.spec.ts specs/kid.spec.ts specs/parent.spec.ts specs/assets.spec.ts specs/templates.spec.ts
+        run: npx playwright test specs/auth.spec.ts specs/kid.spec.ts specs/parent.spec.ts specs/assets.spec.ts specs/persistent-login.spec.ts specs/templates.spec.ts
 
       - uses: actions/upload-artifact@v7
         if: always()

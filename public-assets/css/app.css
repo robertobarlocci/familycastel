@@ -125,6 +125,43 @@ body.parent-app, body.kid-app {
 .flash-success { background: #e8f8db; color: #2f6708; border: 2px solid #bce39a; }
 .flash-error { background: #fdecee; color: #96232f; border: 2px solid #f5c2c9; }
 
+/* ---------- cookie notice (informational, dismissed by a form POST) ---------- */
+.cookie-notice {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: .6rem 1rem;
+    padding: .8rem max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    background: #2b2f6b; color: #fff;
+    box-shadow: 0 -3px 14px rgba(20,18,40,.22);
+}
+.cookie-notice-text { display: grid; gap: .15rem; max-width: 46rem; font-size: .9rem; }
+.cookie-notice-text strong { font-size: .95rem; }
+.cookie-notice-text span { color: rgba(255,255,255,.85); }
+.cookie-notice-actions { flex: 0 0 auto; margin: 0; }
+.cookie-notice-actions .btn-primary { min-height: 44px; }
+/* The kid app has a FIXED bottom dock (.kid-nav). A bottom-anchored notice sat
+   on top of it and swallowed every tap on Journal/Quests/Rewards — caught by
+   kid.spec.ts. Anchor to the top there instead of guessing the dock's height:
+   the dock can change size, the top edge cannot collide with it. */
+.kid-app .cookie-notice {
+    top: 0; bottom: auto;
+    padding-top: max(.8rem, env(safe-area-inset-top));
+    padding-bottom: .8rem;
+    box-shadow: 0 3px 14px rgba(20,18,40,.22);
+}
+/* A fixed bar must never sit ON the end of the page: on a phone the notice
+   covered the last form row, so "Speichern" could not be tapped at all. Reserve
+   room for it while it is on screen — :has() lets the pages that never render it
+   keep their normal spacing. */
+body:has(.cookie-notice) .parent-main,
+body:has(.cookie-notice) .install-wrap { padding-bottom: 13rem; }
+.kid-app:has(.cookie-notice) .kid-main { padding-top: 10rem; }
+
+@media (max-width: 860px) {
+    .cookie-notice { justify-content: stretch; }
+    .cookie-notice-actions, .cookie-notice-actions .btn-primary { width: 100%; }
+}
+
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
 .section-title { font-size: 1.05rem; font-weight: 800; margin: 1.3rem 0 .5rem; }
 .btn-inline { width: auto; padding: .5rem .9rem; min-height: 44px; }

@@ -5,6 +5,47 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-10
+
+Stay signed in. Parents and children no longer have to type a password or PIN
+every time — Family Castel remembers the device and keeps you signed in, including
+after closing the browser or restarting the phone.
+
+### Added
+- **Stay signed in on this device.** After signing in once, that device stays
+  signed in. This works for parents and for children, survives closing the browser
+  and any amount of time away, and needs no setting to switch on. Signing out still
+  works exactly as before and makes that device forget you — other devices are
+  unaffected.
+- **Backups, restore, updates, the backup download and the diagnostics file now ask
+  for your password again**, even while you stay signed in. Everything else — giving
+  Coins, approvals, children, templates, quests, rewards — stays one tap away. This
+  is what makes staying signed in safe: if a phone is lost or borrowed, nobody can
+  wipe, restore or download the family's data without knowing the password.
+- **A one-time note explaining the login cookie**, with a "Got it" button. It says
+  plainly what is stored and why: one cookie so you stay signed in. No advertising,
+  no analytics, nothing shared with anyone.
+
+### Fixed
+- **Creating and editing point templates works again.** Both the ＋ *Create template*
+  button and every *Edit* link led to the error page — the pages had been broken
+  since the first release, so templates could only ever be created by the demo
+  data. The cause was in the shared page-rendering code, which silently dropped a
+  value the page needed; it now refuses such a collision outright, so the same
+  class of fault cannot quietly break another screen.
+
+### Security
+- The stored login is a random 256-bit token, kept only as a hash — a copy of the
+  database (or of a downloaded backup) contains nothing that can sign anyone in.
+- The token changes every time it is used, so a copied cookie stops working as soon
+  as the real device is used again. If an old copy shows up later it is treated as
+  theft: that device's login is cancelled and the event is recorded.
+- Deactivating a parent or archiving a child takes effect immediately on every
+  device, and restoring a backup signs all devices out once as a precaution.
+- Signing in is remembered for 400 days and renewed on every visit, so an
+  actively-used device stays signed in indefinitely. (Browsers cap saved cookies at
+  roughly this length, so a longer promise would not have been kept.)
+
 ## [0.1.3] - 2026-08-10
 
 Fixes a phone showing the old, cramped parent navigation instead of the hamburger

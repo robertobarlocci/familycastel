@@ -101,6 +101,11 @@ final class ChildrenController
     {
         if (Csrf::validate($post['_csrf'] ?? null)) {
             $this->children->archive($id);
+            // Archiving only makes a stay-signed-in token UNUSABLE (the resolve
+            // query checks archived_at). A copy that is never presented during
+            // the archived window stays unrevoked and would silently come back
+            // to life on un-archive — so end those logins here, for good.
+            (new \FamilyCastel\Domain\RememberService($this->db))->revokeAllFor('child', $id);
             (new AuditService($this->db))->log('user', Auth::parentId(), 'child.archived', 'child', $id, ip: $ip);
             Session::flash('success', t('children.archived'));
         }
