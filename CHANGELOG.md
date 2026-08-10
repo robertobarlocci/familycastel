@@ -5,6 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-10
+
+Repairs the in-app updater, which could leave a site without any styling after an
+update. If your site currently looks unstyled, installing this release fixes it —
+no manual step is needed.
+
 ### Fixed
 - The in-app updater now installs the new release with explicit, web-servable file
   modes (directories 0755, files 0644 — the same state a fresh install produces).
@@ -12,11 +18,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
   mode into the live tree, so on hosting where Apache serves static files as a
   different user than PHP the whole `public-assets/` tree became unreadable and the
   site rendered without any CSS, fonts or JavaScript after updating.
+- The application now repairs those file permissions by itself on the first request
+  after an update. This matters because `update.php` is replaced last, so the update
+  that delivers the fix above is still carried out by the previous updater: without
+  this self-repair, the next update after installing 0.1.2 would break styling one
+  final time. The check costs a single filesystem lookup per request and only acts
+  when assets are provably unservable.
 - The updater's post-update replacement of `update.php` now sets its mode
   explicitly, so a restrictive umask can no longer leave the executor unreadable by
   the web server and block all future updates.
 - A rollback that restores retired files now creates directories with the correct
   mode and fails closed if it cannot.
+
+### Added
+- The updater's end-to-end test suite now runs under a restrictive umask and asserts
+  the permissions of every swapped path, so this class of regression cannot ship
+  again, plus assertions that `config/` and `storage/uploads/` survive an update
+  byte-identical.
 
 ## [0.1.1] - 2026-08-10
 
