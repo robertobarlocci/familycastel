@@ -42,6 +42,7 @@ $kidCurrent = static function (string $path) use ($currentPath): string {
     <a href="<?= e(url('/kid/milestones')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/milestones') ?>><span aria-hidden="true">🏆</span><span><?= e(t('kidnav.milestones')) ?></span></a>
     <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/journal') ?>><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
 </nav>
+<?php require __DIR__ . '/../partials/_cookie_notice.php'; ?>
 <script src="<?= e(asset('/public-assets/js/progress.js')) ?>"></script>
 <script src="<?= e(asset('/public-assets/js/sounds.js')) ?>"></script>
 <script src="<?= e(asset('/public-assets/js/pwa.js')) ?>"></script>

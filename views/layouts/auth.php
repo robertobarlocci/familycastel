@@ -15,5 +15,6 @@
     </header>
     <?= $content ?>
 </main>
+<?php require __DIR__ . '/../partials/_cookie_notice.php'; ?>
 </body>
 </html>

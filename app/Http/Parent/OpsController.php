@@ -314,6 +314,13 @@ final class OpsController
             (new \FamilyCastel\Database\Migrator($this->db, FC_ROOT . '/app/Database/Migrations'))->migrate();
             $this->db->fetchOne('SELECT 1');
 
+            // 5b. The snapshot brought its own remember_tokens rows with it. If
+            // it predates a revocation — including one triggered by theft
+            // detection — those credentials are now live again. Revoke every
+            // one: each device signs in once more, which is a small price next
+            // to silently reinstating a stolen cookie.
+            (new \FamilyCastel\Domain\RememberService($this->db))->revokeAll();
+
             // 6. Uploads swap — the old set is KEPT until success for revert.
             // NO inline un-checked revert here: any failure leaves a tracked
             // state ('aside'/'swapped') that the catch path reverts CHECKED.
