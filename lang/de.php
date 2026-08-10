@@ -113,6 +113,15 @@ return [
     'auth.error_failed' => 'Anmeldung fehlgeschlagen. Bitte prüfe deine Angaben — nach zu vielen Versuchen ist das Konto kurz gesperrt.',
     'auth.error_csrf' => 'Sicherheitsprüfung fehlgeschlagen — bitte versuche es erneut.',
     'auth.switch_to_kid' => 'Ich bin ein Kind — zur Heldenauswahl',
+    'auth.confirm_title' => 'Bitte Passwort bestätigen',
+    'auth.confirm_lead' => 'Für Backups, Wiederherstellung und Updates fragen wir noch einmal nach deinem Passwort — auch wenn du angemeldet bleibst.',
+    'auth.confirm_button' => 'Bestätigen',
+    'auth.confirm_required' => 'Bitte bestätige zuerst dein Passwort.',
+
+    // Cookie-Hinweis
+    'cookie.title' => 'Family Castel merkt sich deine Anmeldung',
+    'cookie.body' => 'Wir speichern ein kleines Cookie auf diesem Gerät, damit ihr angemeldet bleibt und nicht jedes Mal das Passwort oder den PIN eintippen müsst. Sonst nichts — keine Werbung, keine Statistik, keine Weitergabe.',
+    'cookie.accept' => 'Alles klar',
 
     // Kid login/home
     'kid.login_title' => 'Wer spielt heute?',

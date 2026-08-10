@@ -108,6 +108,15 @@ return [
     'auth.error_failed' => 'Sign-in failed. Check your details — after too many attempts the account is briefly locked.',
     'auth.error_csrf' => 'Security check failed — please try again.',
     'auth.switch_to_kid' => 'I am a child — to the hero picker',
+    'auth.confirm_title' => 'Please confirm your password',
+    'auth.confirm_lead' => 'For backups, restore and updates we ask for your password once more — even while you stay signed in.',
+    'auth.confirm_button' => 'Confirm',
+    'auth.confirm_required' => 'Please confirm your password first.',
+
+    // Cookie notice
+    'cookie.title' => 'Family Castel remembers your sign-in',
+    'cookie.body' => 'We store one small cookie on this device so you stay signed in and nobody has to retype a password or PIN. Nothing else — no advertising, no analytics, nothing shared.',
+    'cookie.accept' => 'Got it',
 
     // Kid login/home
     'kid.login_title' => 'Who is playing today?',

@@ -7,6 +7,7 @@ namespace FamilyCastel\Http;
 use FamilyCastel\Core\Auth;
 use FamilyCastel\Core\Csrf;
 use FamilyCastel\Core\Db;
+use FamilyCastel\Core\RememberLogin;
 use FamilyCastel\Core\View;
 use FamilyCastel\Domain\AuditService;
 use FamilyCastel\Domain\AuthService;
@@ -69,6 +70,7 @@ final class KidLoginController
         }
 
         Auth::loginChild((int) $child['id']);
+        $this->rememberDevice((int) $child['id']);
         (new AuditService($this->db))->log('child', (int) $child['id'], 'child.login', ip: $ip);
 
         header('Location: ' . url('/kid'), true, 302);
@@ -89,10 +91,25 @@ final class KidLoginController
         }
 
         Auth::loginChild((int) $child['id']);
+        $this->rememberDevice((int) $child['id']);
         (new AuditService($this->db))->log('child', (int) $child['id'], 'child.login_qr', ip: $ip);
 
         header('Location: ' . url('/kid'), true, 302);
 
         return '';
+    }
+
+    /**
+     * Keep this device signed in. A child should not have to re-enter a PIN
+     * every time the browser is closed — but a failure here must never stop
+     * them getting into the game.
+     */
+    private function rememberDevice(int $childId): void
+    {
+        try {
+            RememberLogin::start($this->db, 'child', $childId);
+        } catch (\Throwable) {
+            // Session-only login; the game still works.
+        }
     }
 }

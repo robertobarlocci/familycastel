@@ -40,6 +40,32 @@ npm run reset-throttle                    # clear login throttling after repeate
 Rules: tests first (RED→GREEN), ≥80% coverage on `app/Domain` + `app/Core`,
 integration tests always against MariaDB — never SQLite.
 
+## Staying signed in (`remember_tokens`)
+
+Parents and children stay signed in on a device via the `fc_remember` cookie —
+a 256-bit token stored only as a sha256 hash. Session settings alone cannot do
+this: `session.cookie_lifetime=0`, `gc_maxlifetime=1440` and `/tmp` sweeps on
+shared hosting each end a session independently.
+
+Rules that are easy to break (see **INV-007**):
+
+- The token is restored in ONE place, `$requireInstalled` in `app/routes.php`,
+  right after `Session::start()`. It returns without a query when the session
+  already has a principal.
+- Rotation is a **compare-and-swap** whose `WHERE` carries every precondition,
+  including cross-table eligibility via `LEFT JOIN`. `rowCount() === 0` is
+  ambiguous (rotated? revoked? expired?) and is re-derived from a fresh read,
+  never interpreted.
+- The rotation grace path (60 s, for a cold load's parallel requests) accepts the
+  previous token but **never re-issues a cookie** — only hashes are stored.
+- A restored session is **not** sudo. Backups, restore, updates, backup download
+  and diagnostics go through `$requireRecentAuth` and want the password again.
+- Every path that ends access must also kill the token: logout and both
+  guard-ineligibility branches.
+- Lifetime is a sliding **400 days**, renewed on each rotation. Do not "fix" this
+  to something larger: Chromium caps persistent cookies near 400 days anyway, so a
+  bigger number is a promise the browser will not keep.
+
 ## Static assets: `asset()` vs `url()`
 
 Nothing ships a `Cache-Control` header (mod_headers/mod_expires are not guaranteed
