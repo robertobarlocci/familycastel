@@ -39,6 +39,16 @@ final class BasePath
         return self::$prettyUrls;
     }
 
+    /**
+     * Before the installer has probed the host, query routing is the only mode
+     * that works both with and without mod_rewrite. Installed sites keep using
+     * the mode detected and persisted by the installer.
+     */
+    public static function shouldUsePrettyUrls(bool $installed, bool $configured): bool
+    {
+        return $installed && $configured;
+    }
+
     public static function detect(string $scriptName): string
     {
         $dir = str_replace('\\', '/', dirname($scriptName));

@@ -27,7 +27,10 @@ $config = new Config(__DIR__ . '/config');
 ErrorHandler::register(__DIR__ . '/storage/logs', (bool) $config->get('app.debug', false));
 
 BasePath::set(BasePath::detect((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
-BasePath::setPrettyUrls((bool) $config->get('app.pretty_urls', true));
+BasePath::setPrettyUrls(BasePath::shouldUsePrettyUrls(
+    $config->isInstalled(),
+    (bool) $config->get('app.pretty_urls', true)
+));
 I18n::init(__DIR__ . '/lang', (string) $config->get('app.locale', I18n::DEFAULT_LOCALE));
 date_default_timezone_set((string) $config->get('app.timezone', 'UTC'));
 

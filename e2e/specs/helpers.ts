@@ -23,5 +23,18 @@ export async function kidLoginEmma(page: Page): Promise<void> {
 
 export async function logout(page: Page): Promise<void> {
   // Logout is a CSRF-protected POST — always use the layout's form button.
+  await openParentMenu(page);
   await page.getByRole('button', { name: 'Abmelden' }).first().click();
+}
+
+export async function openParentMenu(page: Page): Promise<void> {
+  const toggle = page.locator('.topbar-menu-toggle');
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') !== 'true') {
+    await toggle.click();
+  }
+}
+
+export async function parentNavigate(page: Page, name: string | RegExp): Promise<void> {
+  await openParentMenu(page);
+  await page.getByRole('link', { name }).click();
 }

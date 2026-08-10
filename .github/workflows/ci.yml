@@ -37,7 +37,7 @@ jobs:
       FC_TEST_DB_PASS: fc-dev-password
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -73,7 +73,7 @@ jobs:
     name: Release ZIP builds cleanly
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -91,7 +91,7 @@ jobs:
             if (!preg_match("/^\d+\.\d+\.\d+$/", $m["version"] ?? "")) { fwrite(STDERR, "bad version\n"); exit(1); }
             echo "release.json OK — " . count($m["files"]) . " files\n";
           '
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-zip
           path: dist/family-castel-v*.zip*
@@ -101,7 +101,7 @@ jobs:
     name: Playwright E2E (dev stack + headless install)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Start the dev stack
         run: docker compose -f docker/compose.yaml up -d --wait
@@ -111,9 +111,10 @@ jobs:
           docker compose -f docker/compose.yaml exec -T app chmod -R a+w storage config
           docker compose -f docker/compose.yaml exec -T -u www-data app php scripts/ci-install.php --demo
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
+          package-manager-cache: false
 
       - name: Install Playwright
         working-directory: e2e
@@ -135,7 +136,7 @@ jobs:
           FC_BASE_URL: http://localhost:8090
         run: npx playwright test specs/auth.spec.ts specs/kid.spec.ts specs/parent.spec.ts
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots
@@ -165,7 +166,7 @@ jobs:
       FC_TEST_DB_USER: fc
       FC_TEST_DB_PASS: fc-dev-password
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'

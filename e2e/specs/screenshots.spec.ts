@@ -10,6 +10,7 @@ const OUT = '../docs/screenshots';
 
 async function shoot(page: Page, name: string, project: string): Promise<void> {
   await page.waitForLoadState('networkidle');
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `${OUT}/${name}-${project}.png`, fullPage: false });
 }
 
@@ -56,7 +57,7 @@ test.describe('screenshots', () => {
 
   test('parent approvals', async ({ page }, testInfo) => {
     await parentLogin(page);
-    await page.getByRole('link', { name: /Genehmigungen/ }).click();
+    await page.goto('/parent/approvals');
     await shoot(page, '08-parent-approvals', testInfo.project.name);
   });
 
@@ -71,5 +72,13 @@ test.describe('screenshots', () => {
     await parentLogin(page);
     await page.goto('/parent/settings/status');
     await shoot(page, '10-parent-system-status', testInfo.project.name);
+  });
+
+  test('parent mobile navigation menu', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'hamburger menu exists only at phone/tablet widths');
+    await parentLogin(page);
+    await page.locator('.topbar-menu-toggle').click();
+    await expect(page.locator('#parent-menu')).toBeVisible();
+    await shoot(page, '11-parent-mobile-menu', testInfo.project.name);
   });
 });

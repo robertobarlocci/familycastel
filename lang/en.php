@@ -142,6 +142,9 @@ return [
     'nav.dashboard' => 'Overview',
     'nav.children' => 'Children',
     'nav.templates' => 'Templates',
+    'nav.parent_label' => 'Parent navigation',
+    'nav.open_menu' => 'Open menu',
+    'nav.close_menu' => 'Close menu',
 
     // Themes & characters
     'theme.fantasy' => 'Fantasy kingdom',

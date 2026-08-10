@@ -147,6 +147,9 @@ return [
     'nav.dashboard' => 'Übersicht',
     'nav.children' => 'Kinder',
     'nav.templates' => 'Vorlagen',
+    'nav.parent_label' => 'Eltern-Navigation',
+    'nav.open_menu' => 'Menü öffnen',
+    'nav.close_menu' => 'Menü schliessen',
 
     // Themes & characters
     'theme.fantasy' => 'Fantasy-Königreich',

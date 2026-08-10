@@ -7,7 +7,8 @@ body.kid-app {
     --accent: #f6b93b;
     background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 100%) fixed;
     color: #fff;
-    padding-bottom: 5.2rem; /* room for bottom nav */
+    padding-bottom: calc(5.3rem + env(safe-area-inset-bottom)); /* room for bottom nav */
+    overflow-x: clip;
 }
 body.kid-app.theme-football {
     --sky-1: #0d3b2e;
@@ -15,7 +16,7 @@ body.kid-app.theme-football {
     --accent: #9be564;
 }
 
-.kid-main { max-width: 32rem; }
+.kid-main { width: 100%; max-width: 32rem; padding: clamp(.75rem, 4vw, 1rem); }
 
 .kid-page-title { font-size: 1.5rem; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
 .kid-section-title { font-size: 1.1rem; font-weight: 800; margin: 1.4rem 0 .5rem; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
@@ -140,21 +141,27 @@ body.kid-app.theme-football {
 .kid-balance-line { font-weight: 800; font-size: 1.05rem; text-shadow: 0 2px 6px rgba(0,0,0,.3); }
 .kid-form { max-width: none; }
 .kid-logout { margin-top: 1.4rem; text-align: center; }
+.kid-logout .btn-ghost { color: #fff; border-color: rgba(255,255,255,.65); }
 
 /* bottom nav */
 .kid-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
-    display: flex; justify-content: space-around;
+    z-index: 60; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
     background: rgba(20, 18, 40, .92); backdrop-filter: blur(6px);
-    padding: .4rem .2rem calc(.4rem + env(safe-area-inset-bottom));
+    padding: .35rem max(.2rem, env(safe-area-inset-right)) calc(.35rem + env(safe-area-inset-bottom)) max(.2rem, env(safe-area-inset-left));
     border-top: 2px solid rgba(255,255,255,.15);
+    box-shadow: 0 -8px 24px rgba(0,0,0,.22);
 }
 .kid-nav-item {
     display: flex; flex-direction: column; align-items: center; gap: .1rem;
-    color: rgba(255,255,255,.85); text-decoration: none; font-size: .7rem; font-weight: 800;
-    min-width: 3.6rem; min-height: 48px; justify-content: center;
+    color: rgba(255,255,255,.78); text-decoration: none; font-size: clamp(.58rem, 2.5vw, .7rem); font-weight: 800;
+    min-width: 0; min-height: 52px; padding: .2rem .1rem; border-radius: 12px; justify-content: center;
+    overflow: hidden;
 }
+.kid-nav-item span:last-child { display: block; width: 100%; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .kid-nav-item span[aria-hidden] { font-size: 1.3rem; }
+.kid-nav-item[aria-current="page"] { color: #fff; background: rgba(255,255,255,.14); }
+.kid-nav-item:focus-visible { outline: 3px solid #ffe29a; outline-offset: -2px; }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -184,12 +191,40 @@ body.kid-app { font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans
 .kid-world-overlay .kid-hero-name { margin: 0; font-size: 1.7rem; }
 .kid-hero-title { margin: .1rem 0 0; font-weight: 800; color: #ffe9b3; font-size: .95rem; }
 
-.theme-picker { display: flex; gap: .8rem; border: 0; padding: 0; }
+.theme-picker { display: flex; gap: .8rem; width: 100%; min-width: 0; border: 0; padding: 0; }
 .theme-option {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: .3rem;
+    min-width: 0;
     border: 3px solid #d9d5f2; border-radius: 16px; padding: .9rem .5rem;
     font-weight: 800; cursor: pointer;
 }
 .theme-option.selected, .theme-option:has(input:checked) { border-color: #58cc02; background: #f2fbe8; }
-.theme-option input { position: absolute; opacity: 0; }
+.theme-option input { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; opacity: 0; }
 .theme-option-emoji { font-size: 2rem; }
+
+@media (max-width: 430px) {
+    .kid-page-title { font-size: 1.35rem; margin-top: .35rem; }
+    .kid-section-title { margin-top: 1.15rem; }
+    .kid-world { margin: -.75rem -.75rem .8rem; border-radius: 0 0 22px 22px; }
+    .kid-world-overlay { top: .4rem; }
+    .kid-world-overlay .kid-hero-name { font-size: 1.45rem; }
+    .kid-hero-title { font-size: .82rem; }
+    .kid-tiles { gap: .55rem; }
+    .kid-tile { padding: .8rem .4rem; border-radius: 16px; }
+    .quest-card, .reward-card, .milestone-card, .milestone-teaser { padding: .9rem; border-radius: 17px; }
+    .kid-app .form-card input:not([type=checkbox]):not([type=radio]), .kid-app .form-card select { width: 100%; font-size: 16px; }
+    .kid-app .form-card .btn-primary, .quest-card .btn-primary, .reward-card .btn-primary { width: 100%; }
+    .claim-row { align-items: stretch; }
+    .claim-row form { flex: 1 1 8rem; }
+    .claim-row form button { width: 100%; }
+    .journal-entry { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+    .journal-body { min-width: 0; overflow-wrap: anywhere; }
+    .theme-picker { flex-direction: column; }
+}
+
+@media (max-width: 340px) {
+    .kid-main { padding: .6rem; }
+    .kid-world { margin: -.6rem -.6rem .7rem; }
+    .kid-tiles { grid-template-columns: 1fr; }
+    .kid-nav-item span[aria-hidden] { font-size: 1.18rem; }
+}
