@@ -26,6 +26,14 @@ after closing the browser or restarting the phone.
   plainly what is stored and why: one cookie so you stay signed in. No advertising,
   no analytics, nothing shared with anyone.
 
+### Fixed
+- **Creating and editing point templates works again.** Both the ＋ *Create template*
+  button and every *Edit* link led to the error page — the pages had been broken
+  since the first release, so templates could only ever be created by the demo
+  data. The cause was in the shared page-rendering code, which silently dropped a
+  value the page needed; it now refuses such a collision outright, so the same
+  class of fault cannot quietly break another screen.
+
 ### Security
 - The stored login is a random 256-bit token, kept only as a hash — a copy of the
   database (or of a downloaded backup) contains nothing that can sign anyone in.

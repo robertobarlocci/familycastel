@@ -1,7 +1,15 @@
 <?php
+/**
+ * @var array<string, mixed>|null $template the record being edited, null on /new
+ * @var list<array<string, mixed>> $children
+ */
+// Defensive: treat anything that is not a record as "new" rather than indexing
+// into it. A missing view variable must degrade to the create form, never to a
+// 500 (issue #12).
+$template = is_array($template ?? null) ? $template : null;
 $isNew = $template === null;
 $selectedIds = [];
-if (!$isNew && $template['child_ids'] !== null) {
+if (!$isNew && ($template['child_ids'] ?? null) !== null) {
     $selectedIds = array_map(intval(...), (array) json_decode((string) $template['child_ids'], true));
 }
 ?>
