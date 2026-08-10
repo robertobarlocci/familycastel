@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { parentLogin } from './helpers';
+import { parentLogin, parentNavigate } from './helpers';
 
 test.describe('parent flows', () => {
   test.beforeEach(async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('parent flows', () => {
   });
 
   test('approvals center lists pending decisions', async ({ page }) => {
-    await page.getByRole('link', { name: /Genehmigungen/ }).click();
+    await parentNavigate(page, /Genehmigungen/);
     await expect(page).toHaveURL(/approvals/);
     await expect(
       page.getByRole('heading', { name: /Genehmigungen|Entscheidungen/ })
@@ -38,7 +38,7 @@ test.describe('parent flows', () => {
   });
 
   test('sidequest admin page lists quests and the create form works', async ({ page }) => {
-    await page.getByRole('link', { name: 'Sidequests' }).click();
+    await parentNavigate(page, 'Sidequests');
     await expect(page).toHaveURL(/quests/);
     // The create form lives in a collapsed <details> panel.
     await page.getByText('＋ Sidequest erstellen').click();
@@ -77,5 +77,52 @@ test.describe('parent flows', () => {
   test('backups page renders and offers creation', async ({ page }) => {
     await page.goto('/parent/settings/backups');
     await expect(page.getByRole('button', { name: /Backup/ }).first()).toBeVisible();
+  });
+});
+
+test.describe('mobile parent experience', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone-specific navigation contract');
+    await parentLogin(page);
+  });
+
+  test('hamburger menu is accessible, keyboard friendly, and links to updates', async ({ page }) => {
+    const toggle = page.locator('.topbar-menu-toggle');
+    const menu = page.locator('#parent-menu');
+
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAccessibleName(/Menü öffnen|Open menu/);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(menu).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(toggle).toHaveAccessibleName(/Menü schliessen|Close menu/);
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('link', { name: /Updates/ })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(toggle).toBeFocused();
+
+    await toggle.click();
+    await menu.getByRole('link', { name: /Updates/ }).click();
+    await expect(page).toHaveURL(/\/parent\/settings\/updates/);
+  });
+
+  test('dashboard, child screen, and approvals never overflow the phone viewport', async ({ page }) => {
+    const expectNoHorizontalOverflow = async (): Promise<void> => {
+      const dimensions = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+    };
+
+    await expectNoHorizontalOverflow();
+    await page.getByRole('link', { name: /Emma/ }).first().click();
+    await expectNoHorizontalOverflow();
+    await page.goto('/parent/approvals');
+    await expectNoHorizontalOverflow();
   });
 });

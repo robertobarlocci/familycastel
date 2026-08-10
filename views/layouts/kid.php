@@ -13,6 +13,20 @@
     <link rel="stylesheet" href="<?= e(url('/public-assets/css/kid.css')) ?>">
 </head>
 <body class="kid-app theme-<?= eattr($child['theme'] ?? 'fantasy') ?>" data-sound="<?= !empty($child['sound_enabled']) ? '1' : '0' ?>" data-sw="<?= eattr(url('/sw.js')) ?>">
+<?php
+$currentPath = \FamilyCastel\Core\Router::resolvePath(
+    (string) ($_SERVER['REQUEST_URI'] ?? '/kid'),
+    \FamilyCastel\Core\BasePath::get(),
+    $_GET
+);
+$kidCurrent = static function (string $path) use ($currentPath): string {
+    $active = $path === '/kid'
+        ? $currentPath === '/kid'
+        : $currentPath === $path || str_starts_with($currentPath, $path . '/');
+
+    return $active ? ' aria-current="page"' : '';
+};
+?>
 <main class="kid-main">
     <?php foreach (\FamilyCastel\Core\Session::takeFlashes() as $flash): ?>
         <div class="flash flash-<?= e($flash['type']) ?>" role="status">
@@ -22,11 +36,11 @@
     <?= $content ?>
 </main>
 <nav class="kid-nav" aria-label="<?= eattr(t('kidnav.label')) ?>">
-    <a href="<?= e(url('/kid')) ?>" class="kid-nav-item"><span aria-hidden="true">🏰</span><span><?= e(t('kidnav.home')) ?></span></a>
-    <a href="<?= e(url('/kid/sidequests')) ?>" class="kid-nav-item"><span aria-hidden="true">🗡️</span><span><?= e(t('kidnav.quests')) ?></span></a>
-    <a href="<?= e(url('/kid/rewards')) ?>" class="kid-nav-item"><span aria-hidden="true">🎁</span><span><?= e(t('kidnav.rewards')) ?></span></a>
-    <a href="<?= e(url('/kid/milestones')) ?>" class="kid-nav-item"><span aria-hidden="true">🏆</span><span><?= e(t('kidnav.milestones')) ?></span></a>
-    <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
+    <a href="<?= e(url('/kid')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid') ?>><span aria-hidden="true">🏰</span><span><?= e(t('kidnav.home')) ?></span></a>
+    <a href="<?= e(url('/kid/sidequests')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/sidequests') ?>><span aria-hidden="true">🗡️</span><span><?= e(t('kidnav.quests')) ?></span></a>
+    <a href="<?= e(url('/kid/rewards')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/rewards') ?>><span aria-hidden="true">🎁</span><span><?= e(t('kidnav.rewards')) ?></span></a>
+    <a href="<?= e(url('/kid/milestones')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/milestones') ?>><span aria-hidden="true">🏆</span><span><?= e(t('kidnav.milestones')) ?></span></a>
+    <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/journal') ?>><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
 </nav>
 <script src="<?= e(url('/public-assets/js/progress.js')) ?>"></script>
 <script src="<?= e(url('/public-assets/js/sounds.js')) ?>"></script>

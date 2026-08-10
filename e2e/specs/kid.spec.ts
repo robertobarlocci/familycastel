@@ -45,3 +45,53 @@ test.describe('child experience (RULE #1: it must feel like a game)', () => {
     expect(response?.url()).toMatch(/login/);
   });
 });
+
+test.describe('mobile child experience', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone-specific game UI contract');
+    await kidLoginEmma(page);
+  });
+
+  test('bottom navigation fits, marks the active screen, and keeps large touch targets', async ({ page }) => {
+    const items = page.locator('.kid-nav-item');
+    await expect(items).toHaveCount(5);
+    await expect(items.first()).toHaveAttribute('aria-current', 'page');
+
+    const boxes = await items.evaluateAll((links) => links.map((link) => {
+      const box = link.getBoundingClientRect();
+      return { left: box.left, right: box.right, width: box.width, height: box.height };
+    }));
+    const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
+
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(viewportWidth);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(48);
+    }
+  });
+
+  test('home, rewards, journal, and settings never overflow the phone viewport', async ({ page }) => {
+    const expectNoHorizontalOverflow = async (): Promise<void> => {
+      const dimensions = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        offenders: Array.from(document.querySelectorAll<HTMLElement>('body *'))
+          .map((element) => ({
+            selector: `${element.tagName.toLowerCase()}.${element.className}`,
+            left: element.getBoundingClientRect().left,
+            right: element.getBoundingClientRect().right,
+          }))
+          .filter((box) => box.left < -0.5 || box.right > document.documentElement.clientWidth + 0.5)
+          .slice(0, 8),
+      }));
+      expect(dimensions.scrollWidth, JSON.stringify(dimensions.offenders)).toBeLessThanOrEqual(dimensions.clientWidth);
+    };
+
+    await expectNoHorizontalOverflow();
+    for (const path of ['/kid/rewards', '/kid/journal', '/kid/settings']) {
+      await page.goto(path);
+      await expectNoHorizontalOverflow();
+    }
+  });
+});
