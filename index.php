@@ -16,7 +16,9 @@ require __DIR__ . '/app/Core/Autoloader.php';
 use FamilyCastel\Core\Autoloader;
 use FamilyCastel\Core\BasePath;
 use FamilyCastel\Core\Config;
+use FamilyCastel\Core\Db;
 use FamilyCastel\Core\ErrorHandler;
+use FamilyCastel\Core\FileModeHeal;
 use FamilyCastel\Core\I18n;
 use FamilyCastel\Core\Router;
 
@@ -86,6 +88,32 @@ if (is_file(__DIR__ . '/storage/maintenance.flag')) {
         . '<style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;background:#1a1f3c;color:#fff}'
         . 'div{text-align:center;max-width:26rem;padding:1rem}</style>'
         . '<div><h1>🏰💤</h1><h2>' . e(t('maintenance.title')) . '</h2><p>' . e(t('maintenance.body')) . '</p></div>';
+    exit;
+}
+
+// Post-update file-mode self-heal. The updater never swaps update.php — the
+// release's copy is installed last — so an update that fixes the updater is
+// itself driven by the OLD executor and can still lay down directories the
+// static file server cannot traverse. The NEW code therefore repairs the tree
+// the old code just wrote. Steady state is a single stat(); the walk only runs
+// when assets are provably unservable, and it joins the updater's writer drain
+// so it can never overlap a swap.
+$healStatus = FileModeHeal::ensure(
+    __DIR__,
+    __DIR__ . '/storage/cache',
+    static fn (): ?PDO => $config->isInstalled() ? Db::fromConfig($config)->pdo() : null
+);
+if ($healStatus === FileModeHeal::FAILED) {
+    http_response_code(503);
+    header('Retry-After: 120');
+    header('Content-Type: text/html; charset=UTF-8');
+    echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>Family Castel</title>'
+        . '<style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;background:#1a1f3c;color:#fff}'
+        . 'div{text-align:center;max-width:30rem;padding:1rem}code{background:rgba(0,0,0,.35);padding:.1rem .3rem;border-radius:4px}</style>'
+        . '<div><h1>🏰🔑</h1><h2>' . e(t('maintenance.title')) . '</h2>'
+        . '<p>' . e(t('maintenance.permissions')) . '</p>'
+        . '<p><code>app, views, lang, public-assets → 0755 / 0644</code></p></div>';
     exit;
 }
 

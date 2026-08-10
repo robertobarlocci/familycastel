@@ -226,6 +226,42 @@ if ($bad !== []) {
 echo "file modes OK (0755 dirs / 0644 files)\n";
 ' || fail "swapped files are not readable by a static file server"
 
+# --- the self-heal repairs a tree laid down by an OLD (unfixed) executor
+# update.php is replaced LAST, so the update carrying the mode fix is driven by
+# the previous executor. Simulate exactly that: break the swapped tree the way
+# the old executor did, then make ONE ordinary request to the front controller.
+say "SCENARIO 1: post-update self-heal (old-executor tree)"
+chmod 0750 "$SANDBOX/app" "$SANDBOX/views" "$SANDBOX/lang" "$SANDBOX/public-assets" \
+           "$SANDBOX"/public-assets/*/
+chmod 0600 "$SANDBOX/public-assets/css/app.css" "$SANDBOX/index.php"
+curl -s -o /dev/null "http://127.0.0.1:$PORT/index.php" || true
+SANDBOX="$SANDBOX" php -r '
+$root = getenv("SANDBOX");
+$bad = [];
+foreach (["app", "views", "public-assets", "lang"] as $entry) {
+    $items = [new SplFileInfo($root . "/" . $entry)];
+    foreach (new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($root . "/" . $entry, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    ) as $item) { $items[] = $item; }
+    foreach ($items as $item) {
+        if ($item->isLink()) { continue; }
+        $want = $item->isDir() ? 0755 : 0644;
+        $got = fileperms($item->getPathname()) & 0777;
+        if ($got !== $want) { $bad[] = sprintf("%s is 0%o, want 0%o", $item->getPathname(), $got, $want); }
+    }
+}
+if ($bad !== []) {
+    fwrite(STDERR, "self-heal did not repair the tree:\n  " . implode("\n  ", array_slice($bad, 0, 10)) . "\n");
+    exit(1);
+}
+echo "self-heal repaired the old-executor tree OK\n";
+' || fail "the bootstrap self-heal did not repair a tree left broken by an old executor"
+
+# config/ and storage/ secrets must be untouched by the heal
+[ "$(stat -c %a "$SANDBOX/config/config.php" 2>/dev/null || echo missing)" != "755" ] \
+  || fail "the self-heal modified config/config.php"
+
 # --- user data untouched
 [ "$(cat "$SANDBOX/config/keepme.txt")" = "keep-config" ] || fail "config/ was modified by the update"
 [ "$(cat "$SANDBOX/storage/uploads/keepme.txt")" = "keep-upload" ] || fail "storage/uploads was modified by the update"

@@ -179,6 +179,235 @@ pre-update mode, which is what a rollback must do.
 
 The existing aggregate-`$ok` / fail-closed contract is otherwise unchanged.
 
+### 5. The bootstrap self-heal — why the updater fix alone is not enough
+
+`update.php` is deliberately excluded from the swap and is replaced **last**, post-commit
+(`fc_step_finish`). So the update that *carries* this fix is driven by the **old, unfixed
+executor**. Proven empirically, not reasoned: running the real e2e updater with the OLD
+`update.php` installed in the sandbox and the FIXED one inside the release still produced
+`app is 0700` and `app/Core/View.php is 0600`. Without a counterpart, the owner's **next**
+click of "Update" breaks the site again and only the update after that is correct — which is
+worthless for a product whose users have no shell (INV-003).
+
+The only new code that runs during an old-executor update is: migrations
+(`fc_step_migrate` → `fc_app_autoload()`), the `SettingsService::pruneRetention()` call in
+`fc_step_finish` (whose exceptions are swallowed, so it cannot gate anything), and the new
+`index.php` on the next request. A migration is the wrong tool — a permission repair is not
+a schema change, and its `down()` could only be a no-op, which violates the project rule
+"never write a migration without a rollback path". So:
+
+> The new `index.php` performs a **release-scoped, one-time** file-mode self-heal before
+> routing.
+
+`app/Core/FileModeHeal.php` (new):
+
+#### Design: probe the real property, keep no state at all
+
+The first three drafts of this section used a persistent "already healed" marker keyed on the
+release. Codex refuted each one in turn: keyed on the version string it went stale across a
+rollback; keyed on the `VERSION` inode it had a swap-during-walk TOCTOU; re-checking the
+identity after the walk still left an **ABA** window (identity A→B→A during the walk).
+
+That is the exact pattern LESSONS 2026-08-10 "Ops round 6" describes: *"When a lock-protocol
+fix needs a third clever refinement, the design is wrong… Observation and action must live
+inside the same critical section."* The honest reading here is that the marker itself is the
+problem — it is shared mutable state asserting a **claim about the past** ("this tree was
+healed"), and every failure mode above is that claim going stale. The alternative used
+instead is to hold no state and evaluate the **actual property, fresh, on every request**:
+
+- **Fast path (steady state): one `stat()`, no marker, no lock, no walk.** Check that
+  `public-assets/` is world-traversable. That is precisely the property whose absence broke
+  production, tested directly rather than remembered.
+- **The walk chmods `public-assets/` itself LAST**, after every other path in the allowlist
+  has succeeded, so the probed bit is a **completion witness** rather than a *sample*. An
+  interrupted walk leaves it unset and is simply redone (the heal is idempotent, so redoing
+  it is free).
+- **The heal never runs concurrently with a swap** — see below. This is the part that makes
+  the witness sound, and it is exclusion, not cleverness.
+
+##### Excluding the swap instead of out-racing it
+
+Codex refuted four successive attempts to make this safe by construction (stale marker →
+TOCTOU → ABA → "chmod the root last, which still targets whatever is at that path *now*, so
+a swap mid-walk can heal tree A's descendants and then set tree B's root"). That last one is
+unfixable by ordering: a path-based `chmod()` cannot be bound to the inode the walk actually
+visited.
+
+The project's own LESSONS 2026-08-10 "Ops round 6" names this exact trap — *"When a
+lock-protocol fix needs a third clever refinement, the design is wrong… Observation and
+action must live inside the same critical section."* So the heal stops racing the swap and is
+**excluded** from it, using two signals that already exist and that this change does not
+modify:
+
+- **`storage/maintenance.flag`.** The updater sets it in `fc_step_maintenance_on` (step 4 of
+  11) and clears it in `fc_step_finish` at the commit point — so extract, swap, migrate and
+  health all happen inside that window. `index.php` already answers 503 on that flag
+  **before** routing, so the heal, invoked *after* that check, is unreachable while any swap
+  is in flight.
+- **`storage/ops.lock`.** A second, independent signal covering the rollback tail and the
+  parent restore flow. The heal skips while it exists.
+
+Checking whether `ops.lock` exists is a read-only **observation**, never a create/rename/
+delete, so INV-005 (every ops.lock *mutation* goes through the shared flock mutex) is
+untouched — no lock code is edited by this change.
+
+**Those two checks alone are check-then-act, and Codex round 7 was right to refuse them:** a
+healer admitted a microsecond before `fc_step_maintenance_on` runs is still walking when the
+swap lands. Existence checks cannot exclude an *already-admitted* actor. What excludes an
+already-admitted actor is the thing built for exactly that job — the **writer drain**:
+
+```php
+fc_gate(true);        // ops_state.write_locked = 1  → new writers refused
+fc_gate_drain();      // SELECT write_locked … FOR UPDATE → waits for in-flight writers
+```
+
+So **the heal becomes a writer**. When (and only when) the probe fails, it opens the same
+transaction shape every other mutator uses:
+
+```
+BEGIN
+SELECT write_locked FROM ops_state WHERE id = 1 FOR UPDATE
+  write_locked = 1 → ROLLBACK, SKIP        (an ops operation owns the system)
+  write_locked = 0 → walk the allowlist, then COMMIT
+```
+
+That is genuine mutual exclusion in both directions, and it needs no new primitive:
+
+- a heal already in flight **holds the row**, so `fc_gate_drain()` blocks until the walk
+  finishes — the swap cannot start underneath a walking healer;
+- a heal starting after `fc_gate(true)` reads `write_locked = 1` and skips;
+- the two are serialized by the database, not by a check-then-act window.
+
+Cost is paid only on the rare heal path: the steady state is still one `stat()` and never
+touches the database. If the database is unavailable or the app is not installed, the heal
+**SKIPs** and logs — a file-mode problem must never escalate into taking the site down.
+
+With the swap excluded, the only writers of these modes are the swap itself (which installs a
+uniform tree by one atomic `rename()`) and the heal (descendants first, root last). Both
+preserve the invariant **"`public-assets/` is world-traversable ⟹ everything under it is
+healed"**, and a rollback restores an inode set that satisfied that invariant when the swap
+parked it. That is what the one-`stat()` probe reads.
+
+- Only when the probe fails does the heal take the lock and walk the allowlist.
+
+Every refuted failure mode disappears rather than being patched:
+
+| Refuted failure | Why it cannot occur now |
+|---|---|
+| Stale marker after rollback | No marker. A rollback that restores a broken tree fails the probe on the next request and is healed. |
+| Swap-during-walk writes a marker for the wrong tree | Nothing is written. |
+| ABA (A→B→A across the walk) | A partial heal simply fails the next request's probe and is redone. The heal is idempotent, so redoing it is free. |
+| Corrupt `VERSION` steering a marker path | `VERSION` is not consulted at all. |
+
+The cost is one `stat()` per request — less than the autoloader already spends — in
+exchange for deleting the entire marker/identity/TOCTOU surface. The `.retry` cooldown is
+kept, because it bounds the one case the probe cannot fix by itself: `chmod()` genuinely
+failing (wrong owner), where re-walking on every request would burn CPU and flood the log.
+
+<details>
+<summary>Superseded marker design (kept for the record — do not implement)</summary>
+
+- **Marker key = the deployment's identity, not its version string.**
+  `sha1(FC_VERSION . '|' . filemtime(VERSION) . '|' . fileinode(VERSION))`, used as
+  `storage/cache/file-modes-<key>.ok`. Keying on the version alone is unsound: `storage/`
+  survives updates *and rollbacks*, so a rollback that restores an older `VERSION` would
+  find that version's old `.ok` marker and skip a heal the restored tree may need (Codex
+  round-2 MEDIUM). The swap moves a *new* `VERSION` inode in, so a release always gets a
+  fresh key; a rollback moves the *original* inode back, so it recovers the original key —
+  which is correct, because `chmod()` mutates the inode that the swap parked in
+  `previous/` and later restored, i.e. a tree healed before the update is still healed
+  after the rollback. Hashing also removes any path-injection concern from a corrupt
+  `VERSION` file, since the key is always hex.
+- **Fast path:** one `is_file()` on the `.ok` marker per request in the steady state — no
+  parse, no lock, no walk.
+- **Failure cooldown:** a `.retry` marker holds the last failed attempt. While it is
+  younger than 60 s the heal returns "failed" immediately — no walk, no log. This bounds
+  the retry cost that Codex flagged (round-2 MEDIUM: retrying on every request would mean
+  repeated tree walks and unbounded log growth) while keeping recovery automatic.
+- **Non-blocking lock:** `flock(LOCK_EX | LOCK_NB)` on `storage/cache/file-modes.lock`.
+  A blocking lock here would serialize every concurrent public request behind one healer —
+  a request convoy. If the lock is not obtained, another request is already healing: this
+  request skips the heal and is served normally (at worst it renders unstyled once). The
+  `.ok` marker is re-checked *inside* the lock, so a request that queued behind a
+  just-finished healer does no redundant work.
+- walks a **hard-coded allowlist** — `app`, `views`, `public-assets`, `lang` plus the root
+  files `index.php`, `.htaccess`, `sw.js`, `offline.html`, `VERSION` — chmodding directories
+  0755 and files 0644. `config/`, `storage/` and `update.php` are **never** touched, so
+  `config.php` (0640), `install-state.json`, `setup-token.txt` and `auth-token` (0600) keep
+  their tight modes;
+- skips symlinks (`lstat` semantics via `isLink()`), never follows them;
+- writes the `.ok` marker only when every chmod succeeded.
+
+**The identity must be re-verified after the walk, not just recomputed under the lock.**
+Codex round 3 found a TOCTOU hole in the first version of this design: the key is derived
+from `VERSION`, but a swap can land *while the walk is running*. The healer would then chmod
+the **new** tree and write `.ok` under the **old** key — and a later rollback restoring that
+old, unhealed tree would find a matching `.ok` and skip the heal it needs. Re-checking `.ok`
+inside the lock does not close this; only re-reading the identity does.
+
+Resolution order, so every branch is cheap and decided:
+
+1. `.ok` marker for the currently-observed key present → **OK**, continue (steady state,
+   one `is_file()`). A key that is stale here merely misses and falls through to the lock.
+2. `.retry` marker younger than 60 s → **FAILED**, no walk, no log.
+3. `flock(LOCK_EX|LOCK_NB)` not obtained → **SKIP**: another request is healing; serve this
+   request normally.
+4. **Recompute the identity inside the lock** → `$before`. Re-check `.ok` for `$before` → **OK**.
+5. Walk the allowlist and chmod.
+6. **Recompute the identity again** → `$after`. If `$after !== $before` the tree was swapped
+   under us: write **no** marker at all and return **SKIP**; the next request heals under the
+   new identity. The `.ok` marker is therefore only ever written for an identity that was
+   provably stable across the entire walk.
+7. All chmods succeeded and the identity held → write `.ok` for `$before`, drop `.retry`,
+   **OK**. Otherwise → touch `.retry`, log once, **FAILED**.
+
+</details>
+
+#### Resolution order as implemented
+
+0. **Cheap exclusion** — invoked only after `index.php`'s existing `storage/maintenance.flag`
+   check, and **SKIP** while `storage/ops.lock` exists. These two are an optimisation, not
+   the guarantee: they keep the common case off the database. The guarantee is step 4a.
+1. **Probe** — `public-assets/` world-traversable → **OK**, continue. One `stat()`; this is
+   the steady state. Sound because step 5 sets that bit last (completion witness).
+2. `.retry` marker younger than 60 s → **FAILED**, no walk, no log.
+3. `flock(LOCK_EX | LOCK_NB)` on `storage/cache/file-modes.lock` not obtained → **SKIP**:
+   another request is already healing; serve this request normally. Non-blocking on purpose —
+   a blocking lock would queue every concurrent public request behind one healer.
+4. Re-probe inside the lock (a healer that just finished may have fixed it) → **OK**.
+4a. **Join the writer drain — this is the actual exclusion.**
+   `BEGIN; SELECT write_locked FROM ops_state WHERE id = 1 FOR UPDATE`.
+   `write_locked = 1` → `ROLLBACK`, **SKIP**. No database, or not installed → **SKIP** +
+   log; a mode problem must never escalate into an outage. Otherwise hold the row for the
+   whole of step 5 and `COMMIT` after it. `fc_gate_drain()` therefore blocks on a walking
+   healer, and a healer starting after `fc_gate(true)` sees the lock and stands down.
+5. Walk the allowlist, chmod directories 0755 and files 0644, skipping symlinks — with
+   `public-assets/` itself **deferred to the very end** and set only if everything else
+   succeeded. Ordering, not extra state, is what makes the probe a completion witness.
+6. All chmods succeeded → delete `.retry`, **OK**. Otherwise → leave the witness bit unset,
+   touch `.retry`, log once, **FAILED**.
+
+Nothing asserts a claim about the past, so nothing can go stale: correctness is re-derived
+from the filesystem on every request.
+
+**Decided end-state on failure** (case (c) of the three-end-state rule): no `.ok` marker is
+written and the request is answered with a 503 naming the manual step ("set 0755 on
+directories and 0644 on files for app, views, public-assets and lang using your hosting file
+manager"). The heal is **retried after the cooldown** rather than latched into a permanent
+failed state: the parent has no shell and cannot clear a latched marker, whereas a
+cooldown-bounded retry means the site recovers by itself the moment the modes are corrected
+in the hosting file manager. `SKIP` is deliberately *not* a failure — a request that loses
+the lock race is served normally, because one unstyled page render is strictly better than a
+503, and the healer that holds the lock is about to fix it.
+
+**Rejected: latching a permanent failed state** (Codex's first suggestion). It bounds the
+retry cost, but the only actor who could clear the latch is the one who cannot: the
+non-technical parent this product exists for (INV-003). The cooldown achieves the same cost
+bound while keeping recovery automatic.
+
+Once shipped, this also makes the manual FTP chain self-heal (issue #3), because the same
+bootstrap runs no matter how the files arrived.
+
 ## Teilaufgaben
 
 Executed strictly one after another; each is finished, tested and green before the next starts.
@@ -223,7 +452,17 @@ Executed strictly one after another; each is finished, tested and green before t
    flagged it as scope creep; keeping it is the deliberate call, because the alternative is
    either silently dropping five real findings or widening this PR to fix them.
 
-8. **T8 — vault update** — `CHANGELOG.md`, `LESSONS.md` (new dated entry: ambient modes are a
+8. **T9 — RED: `tests/Unit/FileModeHealTest.php`.** Marker short-circuits the walk; a wrong
+   tree is healed to 0755/0644; `config/`, `storage/` and `update.php` are untouched; a
+   non-semver version is refused; symlinks skipped; idempotent; no marker written when a
+   chmod fails.
+
+9. **T10 — GREEN: `app/Core/FileModeHeal.php` + the call in `index.php`,** plus an e2e leg:
+   run the updater with the OLD executor installed and the FIXED release, then assert the
+   modes are correct **after one HTTP request to the front controller**. That is the exact
+   scenario proven broken above and it must go green.
+
+10. **T8 — vault update** — `CHANGELOG.md`, `LESSONS.md` (new dated entry: ambient modes are a
    correctness bug; a gate whose PHP and static-file server share a uid can never see it),
    `ARCHITECTURE.md` (the 0755/0644 rule), `FILE_MAP.md` if files were added.
 
