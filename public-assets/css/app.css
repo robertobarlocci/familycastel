@@ -227,6 +227,11 @@ body:has(.cookie-notice) .install-wrap { padding-bottom: 13rem; }
 .template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .7rem; }
 .template-btn {
     width: 100%; font: inherit; cursor: pointer; text-align: left;
+    /* A <button> does not inherit `color` — the UA supplies ButtonText — so a button
+       that sets its own background is painting an app colour against a system one.
+       .template-btn-delta always set its own; the title relied on the UA, which is the
+       one part of this screen we do not control (issue #15). */
+    color: var(--ink);
     display: flex; flex-direction: column; gap: .2rem;
     background: var(--card); border: 2px solid #cdeab2; border-radius: 16px;
     padding: .8rem .9rem; min-height: 64px;
@@ -236,7 +241,10 @@ body:has(.cookie-notice) .install-wrap { padding-bottom: 13rem; }
 .template-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #bfe0a4; }
 .template-btn.negative { border-color: #f5c2c9; box-shadow: 0 4px 0 #ecb2bb; }
 .template-btn.negative:active { box-shadow: 0 0 0 #ecb2bb; }
-.template-btn-title { font-weight: 800; }
+/* `anywhere` (not `break-word`) because it also shrinks min-content, which is what stops
+   an unbroken title from widening its grid track — html { overflow-x: clip } would then
+   hide the overflow rather than scroll it, clipping the title silently. */
+.template-btn-title { font-weight: 800; overflow-wrap: anywhere; }
 .template-btn-delta { color: var(--ink-soft); font-weight: 700; font-size: .9rem; }
 
 .history-list { display: flex; flex-direction: column; gap: .35rem; }
