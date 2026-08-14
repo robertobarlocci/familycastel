@@ -15,12 +15,14 @@ use FamilyCastel\Domain\JournalService;
 use FamilyCastel\Domain\LedgerService;
 use FamilyCastel\Domain\LevelService;
 use FamilyCastel\Domain\MilestoneService;
+use FamilyCastel\Domain\PenaltyPhotoStore;
 use FamilyCastel\Domain\QuestUnavailableException;
 use FamilyCastel\Domain\RewardService;
 use FamilyCastel\Domain\SettingsService;
 use FamilyCastel\Domain\SidequestService;
 use FamilyCastel\Domain\SuggestionService;
 use FamilyCastel\Domain\WriteLockedException;
+use FamilyCastel\Http\PenaltyPhotoResponse;
 
 /** The child's game area. Every action is scoped to the logged-in child. */
 final class KidController
@@ -325,6 +327,40 @@ final class KidController
             'filters' => JournalService::FILTERS,
             'entries' => (new JournalService($this->db))->entries($this->childId(), $filter),
         ], 'layouts/kid');
+    }
+
+    /**
+     * The photo attached to a penalty in this child's journal.
+     *
+     * The transaction id in the URL is guessable by counting, so ownership is
+     * proven from the SESSION principal and never from the URL — this is the
+     * IDOR boundary between siblings. A miss redirects rather than disclosing
+     * whether that id exists.
+     */
+    public function penaltyPhoto(int $transactionId): string
+    {
+        $row = $this->db->fetchOne(
+            'SELECT p.path
+             FROM transaction_photos p
+             JOIN transactions t ON t.id = p.transaction_id
+             WHERE p.transaction_id = ? AND t.child_id = ?',
+            [$transactionId, $this->childId()]
+        );
+        if ($row === null) {
+            return $this->redirect('/kid/journal');
+        }
+
+        try {
+            $absolute = (new PenaltyPhotoStore(FC_ROOT . '/storage/uploads'))->resolve((string) $row['path']);
+        } catch (\InvalidArgumentException) {
+            return $this->redirect('/kid/journal');
+        }
+
+        return PenaltyPhotoResponse::send(
+            $absolute,
+            PenaltyPhotoStore::extensionOf((string) $row['path']),
+            $transactionId
+        );
     }
 
     private function redirect(string $path): string

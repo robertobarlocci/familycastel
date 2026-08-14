@@ -31,6 +31,13 @@
                     <?php if (!empty($entry['comment'])): ?>
                         <span class="journal-comment">💬 <?= e($entry['comment']) ?></span>
                     <?php endif; ?>
+                    <?php if ($entry['has_photo']): ?>
+                        <?php /* alt is a generic label, not the reason: the reason is the adjacent
+                                heading, and repeating it makes a screen reader say it twice. */ ?>
+                        <img class="journal-photo"
+                             src="<?= e(url('/kid/journal/photo/' . eurl((string) $entry['transaction_id']))) ?>"
+                             alt="<?= eattr(t('journal.photo_alt')) ?>" loading="lazy" decoding="async">
+                    <?php endif; ?>
                 </div>
             </article>
         <?php endforeach; ?>

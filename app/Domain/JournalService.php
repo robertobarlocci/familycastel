@@ -20,8 +20,13 @@ final class JournalService
     }
 
     /**
+     * Every entry carries the same keys, whatever it was derived from —
+     * `transaction_id` and `has_photo` are null/false on the non-ledger kinds
+     * rather than absent, so the view never needs an isset() guard.
+     *
      * @return list<array{kind: string, title: string, coins: ?int, xp: ?int,
-     *               status: string, comment: ?string, at: string}>
+     *               status: string, comment: ?string, at: string,
+     *               transaction_id: ?int, has_photo: bool}>
      */
     public function entries(int $childId, string $filter = 'all', int $limit = 100): array
     {
@@ -39,8 +44,13 @@ final class JournalService
                 'rewards' => "AND t.type = 'reward_spend'",
                 default => '',
             };
+            // The LEFT JOIN is what lets a penalty carry its photo evidence into
+            // the child's journal — one extra column, no extra query per row.
             foreach ($this->db->fetchAll(
-                "SELECT t.* FROM transactions t WHERE t.child_id = ? {$where} ORDER BY t.id DESC LIMIT ?",
+                "SELECT t.*, p.id AS photo_id
+                 FROM transactions t
+                 LEFT JOIN transaction_photos p ON p.transaction_id = t.id
+                 WHERE t.child_id = ? {$where} ORDER BY t.id DESC LIMIT ?",
                 [$childId, $limit]
             ) as $tx) {
                 $entries[] = [
@@ -51,6 +61,8 @@ final class JournalService
                     'status' => 'posted',
                     'comment' => $tx['comment'],
                     'at' => (string) $tx['created_at'],
+                    'transaction_id' => (int) $tx['id'],
+                    'has_photo' => $tx['photo_id'] !== null,
                 ];
             }
         }
@@ -79,6 +91,10 @@ final class JournalService
                             'status' => $claim['status'] === 'rejected' ? 'rejected' : 'pending',
                             'comment' => $claim['parent_comment'],
                             'at' => (string) ($claim['completed_at'] ?? $claim['created_at']),
+                            // Uniform shape: only ledger rows can carry photo evidence, but every
+                            // entry declares both keys so the view needs no isset() guard.
+                            'transaction_id' => null,
+                            'has_photo' => false,
                         ];
                     }
                 }
@@ -99,6 +115,10 @@ final class JournalService
                             'status' => (string) $request['status'],
                             'comment' => $request['parent_comment'],
                             'at' => (string) $request['created_at'],
+                            // Uniform shape: only ledger rows can carry photo evidence, but every
+                            // entry declares both keys so the view needs no isset() guard.
+                            'transaction_id' => null,
+                            'has_photo' => false,
                         ];
                     }
                 }
@@ -118,6 +138,10 @@ final class JournalService
                             'status' => (string) $suggestion['status'],
                             'comment' => $suggestion['parent_comment'],
                             'at' => (string) $suggestion['created_at'],
+                            // Uniform shape: only ledger rows can carry photo evidence, but every
+                            // entry declares both keys so the view needs no isset() guard.
+                            'transaction_id' => null,
+                            'has_photo' => false,
                         ];
                     }
 
@@ -133,6 +157,10 @@ final class JournalService
                             'status' => (string) $wish['status'],
                             'comment' => $wish['parent_comment'],
                             'at' => (string) $wish['created_at'],
+                            // Uniform shape: only ledger rows can carry photo evidence, but every
+                            // entry declares both keys so the view needs no isset() guard.
+                            'transaction_id' => null,
+                            'has_photo' => false,
                         ];
                     }
                 }

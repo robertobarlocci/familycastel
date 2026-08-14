@@ -247,6 +247,15 @@ $router->post('/parent/templates/save', $requireParent(fn () => (new \FamilyCast
 $router->post('/parent/templates/{id}/archive', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->archive((int) $p['id'], $_POST)));
 $router->post('/parent/templates/{id}/favorite', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\TemplatesController($lazyDb(), $view))->toggleFavorite((int) $p['id'], $_POST)));
 
+// Minuspunkte. $requireParent, deliberately NOT $requireRecentAuth: the step-up
+// window (INV-007 clause 2) guards the seven irreversible / whole-installation
+// operations, and recording a penalty is a normal reversible economy action a
+// parent does from a phone. The child-facing photo route lives in the kid block
+// below, where $kid is in scope.
+$router->get('/parent/penalties', $requireParent(fn () => (new \FamilyCastel\Http\Parent\PenaltiesController($lazyDb(), $view))->index()));
+$router->post('/parent/penalties/create', $requireParent(fn () => (new \FamilyCastel\Http\Parent\PenaltiesController($lazyDb(), $view))->create($_POST, $_FILES)));
+$router->get('/parent/penalties/photo/{id}', $requireParent(fn (array $p) => (new \FamilyCastel\Http\Parent\PenaltiesController($lazyDb(), $view))->photo((int) $p['id'])));
+
 $router->get('/parent/approvals', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ApprovalsController($lazyDb(), $view))->index()));
 $router->post('/parent/approvals/decide', $requireParent(fn () => (new \FamilyCastel\Http\Parent\ApprovalsController($lazyDb(), $view))->decide($_POST, $ip)));
 
@@ -292,3 +301,6 @@ $router->get('/kid/achievements', $requireChild(fn () => $kid()->achievements())
 $router->get('/kid/settings', $requireChild(fn () => $kid()->settings()));
 $router->post('/kid/settings', $requireChild(fn () => $kid()->saveSettings($_POST)));
 $router->get('/kid/journal', $requireChild(fn () => $kid()->journal()));
+// Registered HERE, not in the parent block: $kid is captured by value at
+// closure-creation time, so a route declared before line 278 would capture null.
+$router->get('/kid/journal/photo/{id}', $requireChild(fn (array $p) => $kid()->penaltyPhoto((int) $p['id'])));
