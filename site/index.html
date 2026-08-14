@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Family Castel — the reward system that plays like a game</title>
+<meta name="description" content="A self-hosted reward system for families. Kids do Sidequests, earn Coins and XP, level up and watch their own world grow. Runs on ordinary web hosting.">
+<link rel="canonical" href="https://robertobarlocci.github.io/familycastel/">
+<meta name="theme-color" content="#2b2f6b">
+<meta name="author" content="Roberto Barlocci">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Family Castel">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="Family Castel — the family reward system that plays like a game">
+<meta property="og:description" content="Kids do Sidequests, earn Coins and XP, level up and watch their own world grow from a small camp into an epic kingdom. Self-hosted, private, free.">
+<meta property="og:url" content="https://robertobarlocci.github.io/familycastel/">
+<meta property="og:image" content="https://robertobarlocci.github.io/familycastel/screens/01-kid-home-fantasy-desktop.png">
+<meta property="og:image:alt" content="A child's home screen in Family Castel: an illustrated fantasy kingdom with a Coin and XP counter and a progress bar to the next level.">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Family Castel — the family reward system that plays like a game">
+<meta name="twitter:description" content="Kids do Sidequests, earn Coins and XP, level up and watch their own world grow. Self-hosted on your own web space, private, free.">
+<meta name="twitter:image" content="https://robertobarlocci.github.io/familycastel/screens/01-kid-home-fantasy-desktop.png">
+<meta name="twitter:image:alt" content="A child's home screen in Family Castel: an illustrated fantasy kingdom with a Coin and XP counter and a progress bar to the next level.">
+
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Family Castel",
+  "description": "A self-hosted, single-family reward system. Children complete Sidequests, earn Coins and XP, level up and watch their own world grow; parents approve everything from a fast dashboard.",
+  "applicationCategory": "LifestyleApplication",
+  "operatingSystem": "Any web server with PHP 8.2+ and MySQL or MariaDB",
+  "softwareVersion": "0.1.4",
+  "license": "https://github.com/robertobarlocci/familycastel/blob/main/LICENSE",
+  "codeRepository": "https://github.com/robertobarlocci/familycastel",
+  "author": {
+    "@type": "Person",
+    "name": "Roberto Barlocci"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CHF"
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Why is it called Family Castel and not Castle?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Because that is how our family says it. Say it the Spanish way, cas-TEL, with the weight on the second half. It started as one missing letter, everybody kept saying it on purpose, and it stuck. A castle is a building. A Castel is ours."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it really free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. It is MIT licensed and there is nothing to buy, no account to make and no subscription. You need somewhere to put it, which for most people is web hosting they already pay for."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where does our family data live?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "On your own web space, in your own database. There is no company server in the middle, no analytics, no advertising and nothing shared with anyone. One installation is one family."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What do I need to run it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Apache with .htaccess support, PHP 8.2 or newer, and a MySQL or MariaDB database. No shell access, no Composer, no Node, no cron jobs. Ordinary shared hosting is exactly what it was built for."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do the children need their own phone or email address?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. A child signs in with a four to six digit secret number, or by scanning a QR code you can print and stick on the fridge. There are no email addresses and no accounts anywhere else."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a child lose progress?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "XP never goes down and history is never deleted. Coins are spent on rewards, so those go up and down, but every single change stays in the Journal forever. Even archiving a child keeps their whole story."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it finished?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It is early days and honest about it. Everything described on this page works today, but the version number starts with a zero for a reason, and it is a family project rather than a product with a support desk."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="hero">
+  <nav class="topnav" aria-label="Sections">
+    <span class="brand">
+      <svg class="brand-mark" viewBox="0 0 512 512" role="img" aria-label="The Family Castel crest: a castle at dusk">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2b2f6b"/><stop offset="1" stop-color="#7a4ea3"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="96" fill="url(#sky)"/>
+        <rect x="146" y="220" width="220" height="160" fill="#e8e3f2"/>
+        <rect x="146" y="204" width="220" height="20" fill="#b9aed1"/>
+        <rect x="150" y="188" width="28" height="18" fill="#b9aed1"/><rect x="206" y="188" width="28" height="18" fill="#b9aed1"/>
+        <rect x="262" y="188" width="28" height="18" fill="#b9aed1"/><rect x="318" y="188" width="28" height="18" fill="#b9aed1"/>
+        <path d="M224 380 L224 312 Q256 284 288 312 L288 380 Z" fill="#5b4a86"/>
+        <rect x="96" y="240" width="56" height="140" fill="#cfc3e6"/>
+        <path d="M88 240 L124 180 L160 240 Z" fill="#7a5aa8"/>
+        <rect x="360" y="240" width="56" height="140" fill="#cfc3e6"/>
+        <path d="M352 240 L388 180 L424 240 Z" fill="#7a5aa8"/>
+        <rect x="252" y="120" width="8" height="70" fill="#cfc3e6"/>
+        <path d="M260 122 L260 96 L308 109 Z" fill="#f6b93b"/>
+        <rect x="120" y="380" width="272" height="36" rx="10" fill="#3e7d54"/>
+      </svg>
+      <span class="brand-word">Family&nbsp;Castel</span>
+    </span>
+    <ul class="topnav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#castel">Why "Castel"?</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/robertobarlocci/familycastel" rel="noopener noreferrer">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero-inner">
+    <p class="eyebrow">Free &middot; open source &middot; runs on your own web space</p>
+    <h1>Doing the dishes should<br>feel like a Sidequest.</h1>
+    <p class="lead">
+      Family Castel turns everyday family life into a game your kids actually want to play.
+      They take on <strong>Sidequests</strong>, earn <strong>Coins</strong> and <strong>XP</strong>,
+      level up, and watch their own world grow from a little camp into an epic kingdom.
+      You get a dashboard that takes three taps.
+    </p>
+    <p class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/robertobarlocci/familycastel/releases/latest" rel="noopener noreferrer">Download the latest release</a>
+      <a class="btn btn-ghost" href="#how">See how it works</a>
+    </p>
+    <p class="hero-note">No account. No subscription. No data leaves your server.</p>
+  </div>
+
+  <div class="hero-stats" aria-hidden="true">
+    <span class="chip chip-coin">🪙 245 Coins</span>
+    <span class="chip chip-xp">✨ 900 XP</span>
+    <span class="chip chip-level">🛡️ Level 7 &middot; Squire</span>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="section" id="how">
+  <h2>How it works</h2>
+  <p class="section-lead">Four moving parts. That is the whole game.</p>
+
+  <ol class="steps">
+    <li class="step">
+      <span class="step-emoji" aria-hidden="true">🗡️</span>
+      <h3>A Sidequest appears</h3>
+      <p>You post something that needs doing. One-time, daily, weekly or repeating. Open to
+      whoever grabs it first, or assigned to one child. The kingdom is never peaceful for long.</p>
+    </li>
+    <li class="step">
+      <span class="step-emoji" aria-hidden="true">🪙</span>
+      <h3>They do it, you approve it</h3>
+      <p>The child marks it done and you get one tap to approve, adjust the reward, or say
+      not yet. Coins land in their purse. XP lands forever.</p>
+    </li>
+    <li class="step">
+      <span class="step-emoji" aria-hidden="true">✨</span>
+      <h3>Their world grows</h3>
+      <p>XP raises their level, and their level visibly upgrades their world: camp, village,
+      castle, kingdom, epic kingdom. Football fans get street pitch to championship arena instead.</p>
+    </li>
+    <li class="step">
+      <span class="step-emoji" aria-hidden="true">🎁</span>
+      <h3>Coins buy real things</h3>
+      <p>Screen time, choosing the film, a big saving goal like a Nintendo Switch. They ask,
+      you approve, the Coins are reserved so they cannot be spent twice.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="section section-dark" id="castel">
+  <h2>Why "Castel" and not "Castle"?</h2>
+
+  <div class="castel-grid">
+    <div>
+      <p class="big-answer">Because that is how we say it.</p>
+      <p>
+        Say it out loud the Spanish way &mdash; <strong>cas-TEL</strong> &mdash; with the weight
+        on the second half. It started as one missing letter. Then everybody in the family kept
+        saying it on purpose, because it sounded better, and after a while nobody was joking any more.
+      </p>
+      <p>
+        A castle is a building. A <em>Castel</em> is ours.
+      </p>
+      <p class="aside">
+        There is also a coincidence we cannot take any credit for. In Catalonia, a
+        <em>castell</em> is not a building at all &mdash; it is a human tower, a whole crowd of
+        people standing on each other's shoulders, with the smallest, lightest child climbing all
+        the way to the top while everyone below holds steady. Nobody planned that. It is still the
+        best possible picture of what this thing is for.
+      </p>
+    </div>
+    <aside class="pronounce">
+      <p class="pronounce-word">Family Castel</p>
+      <p class="pronounce-say">/ ˈfæmɪli kasˈtɛl /</p>
+      <p class="pronounce-hint">one L &middot; stress the TEL</p>
+      <p class="pronounce-foot">Searching for it? It is spelled <strong>Castel</strong>.</p>
+    </aside>
+  </div>
+</section>
+
+<section class="section" id="kids">
+  <h2>For the kids</h2>
+  <p class="section-lead">If it looks like admin software, the design is wrong. That is the rule.</p>
+
+  <div class="shots">
+    <figure>
+      <img src="screens/01-kid-home-fantasy-desktop.png" width="1280" height="800" loading="lazy"
+           alt="A child's home screen: an illustrated fantasy kingdom at dusk with the hero's name, Coin and XP chips, and a glowing progress bar towards the next level.">
+      <figcaption>Their castle, their level, their world &mdash; and a bar that fills up.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/02-kid-sidequests-desktop.png" width="1280" height="800" loading="lazy"
+           alt="The Sidequests screen showing available quests with their Coin and XP rewards and a big Accept quest button.">
+      <figcaption>Quests to accept, with the reward shown before they commit.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/03-kid-rewards-desktop.png" width="1280" height="800" loading="lazy"
+           alt="The rewards screen: a treasure shop of rewards with their Coin prices and a Redeem button, plus locked rewards they are still saving for.">
+      <figcaption>The treasure shop. Locked things are the whole point.</figcaption>
+    </figure>
+  </div>
+
+  <ul class="feature-list">
+    <li><strong>Sign in without an email address.</strong> A secret number, or a QR code you print and stick on the fridge.</li>
+    <li><strong>Two worlds.</strong> A fantasy kingdom or a football world, each with five stages that unlock as they level up.</li>
+    <li><strong>Celebrations that go off.</strong> Confetti, sounds, achievements with rarities from Common to Legendary.</li>
+    <li><strong>A Journal that never forgets.</strong> Everything they ever earned, spent, asked for and achieved.</li>
+    <li><strong>It installs on the tablet.</strong> Add it to the home screen and it opens like an app.</li>
+  </ul>
+</section>
+
+<section class="section section-tint" id="parents">
+  <h2>For the parents</h2>
+  <p class="section-lead">The part you actually use is a list of buttons and an approvals queue.</p>
+
+  <div class="shots shots-two">
+    <figure>
+      <img src="screens/07-parent-child-screen-desktop.png" width="1280" height="800" loading="lazy"
+           alt="The parent view of one child: balance chips at the top and a grid of one-tap quick action buttons, each showing its Coin and XP value.">
+      <figcaption>Quick actions. One tap, Coins awarded, done.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/08-parent-approvals-desktop.png" width="1280" height="800" loading="lazy"
+           alt="The approvals screen listing completed Sidequests, children's suggestions, reward requests and milestone wishes, each with approve and reject buttons.">
+      <figcaption>Everything waiting on you, in one queue.</figcaption>
+    </figure>
+  </div>
+
+  <ul class="feature-list">
+    <li><strong>An economy you can trust.</strong> Coins and XP only ever move through an append-only ledger. Balances are calculated, never edited. Double-tapping a button cannot award twice.</li>
+    <li><strong>Nothing is ever deleted.</strong> Archive a quest, a reward or a whole child &mdash; the history stays complete.</li>
+    <li><strong>Approve, adjust or decline.</strong> Change the reward at approval time when the job was half done.</li>
+    <li><strong>Kids can pitch.</strong> They suggest things they did, and wish for rewards and big saving goals. You decide.</li>
+    <li><strong>Backups and updates in the browser.</strong> One button backs up, verifies, installs and rolls back by itself if anything fails.</li>
+    <li><strong>Stay signed in.</strong> Your phone stays logged in, but wiping or downloading the family's data always asks for your password again.</li>
+  </ul>
+</section>
+
+<section class="section" id="install">
+  <h2>Put it on your own web space</h2>
+  <p class="section-lead">
+    It was built for the cheap shared hosting you probably already have. Upload, open, install.
+  </p>
+
+  <div class="install-grid">
+    <ol class="install-steps">
+      <li>Download the release ZIP and unpack it into your web space, or any folder inside it.</li>
+      <li>Create an empty MySQL or MariaDB database in your hosting panel.</li>
+      <li>Open the address in a browser. The installer starts by itself and checks your server.</li>
+      <li>Prove the space is yours by reading a short code from a file over FTP or the file manager.</li>
+      <li>Pick a password, add your children, and print their QR codes.</li>
+    </ol>
+
+    <div class="req-card">
+      <h3>What your host needs</h3>
+      <dl class="reqs">
+        <dt>PHP</dt><dd>8.2 or newer</dd>
+        <dt>Database</dt><dd>MySQL 5.7+ or MariaDB 10.4+</dd>
+        <dt>Web server</dt><dd>Apache with .htaccess support</dd>
+        <dt>Also nice</dt><dd>HTTPS, which every host gives you free now</dd>
+      </dl>
+      <p class="req-note">
+        No shell access. No Composer, no Node, no cron jobs, nothing running in the background.
+        If your host ignores .htaccess files, the installer tells you to stop rather than
+        leaving your family's data readable.
+      </p>
+    </div>
+  </div>
+
+  <p class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/robertobarlocci/familycastel/releases/latest" rel="noopener noreferrer">Get the latest release</a>
+    <a class="btn btn-ghost" href="https://github.com/robertobarlocci/familycastel/blob/main/docs/INSTALL.md" rel="noopener noreferrer">Read the install guide</a>
+  </p>
+</section>
+
+<section class="section section-tint" id="faq">
+  <h2>Questions families ask</h2>
+
+  <details>
+    <summary>Why is it called Family Castel and not Castle?</summary>
+    <p>Because that is how our family says it. Say it the Spanish way, cas-TEL, with the weight on the second half. It started as one missing letter, everybody kept saying it on purpose, and it stuck. A castle is a building. A Castel is ours.</p>
+  </details>
+
+  <details>
+    <summary>Is it really free?</summary>
+    <p>Yes. It is MIT licensed and there is nothing to buy, no account to make and no subscription. You need somewhere to put it, which for most people is web hosting they already pay for.</p>
+  </details>
+
+  <details>
+    <summary>Where does our family data live?</summary>
+    <p>On your own web space, in your own database. There is no company server in the middle, no analytics, no advertising and nothing shared with anyone. One installation is one family.</p>
+  </details>
+
+  <details>
+    <summary>What do I need to run it?</summary>
+    <p>Apache with .htaccess support, PHP 8.2 or newer, and a MySQL or MariaDB database. No shell access, no Composer, no Node, no cron jobs. Ordinary shared hosting is exactly what it was built for.</p>
+  </details>
+
+  <details>
+    <summary>Do the children need their own phone or email address?</summary>
+    <p>No. A child signs in with a four to six digit secret number, or by scanning a QR code you can print and stick on the fridge. There are no email addresses and no accounts anywhere else.</p>
+  </details>
+
+  <details>
+    <summary>Can a child lose progress?</summary>
+    <p>XP never goes down and history is never deleted. Coins are spent on rewards, so those go up and down, but every single change stays in the Journal forever. Even archiving a child keeps their whole story.</p>
+  </details>
+
+  <details>
+    <summary>Is it finished?</summary>
+    <p>It is early days and honest about it. Everything described on this page works today, but the version number starts with a zero for a reason, and it is a family project rather than a product with a support desk.</p>
+  </details>
+</section>
+
+<section class="section closing">
+  <h2>Go and build a kingdom</h2>
+  <p class="section-lead">
+    It is one download and about fifteen minutes. The hard part is deciding what a clean room is worth.
+  </p>
+  <p class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/robertobarlocci/familycastel/releases/latest" rel="noopener noreferrer">Download Family Castel</a>
+    <a class="btn btn-ghost" href="https://github.com/robertobarlocci/familycastel" rel="noopener noreferrer">Read the source</a>
+  </p>
+</section>
+
+</main>
+
+<footer class="footer">
+  <p class="footer-brand">🏰 Family Castel</p>
+  <p>
+    Made for one family, shared with yours. MIT licensed, provided as is, with no warranty
+    and no support desk &mdash; but issues and pull requests are very welcome.
+  </p>
+  <ul class="footer-links">
+    <li><a href="https://github.com/robertobarlocci/familycastel" rel="noopener noreferrer">Source on GitHub</a></li>
+    <li><a href="https://github.com/robertobarlocci/familycastel/releases" rel="noopener noreferrer">Releases</a></li>
+    <li><a href="https://github.com/robertobarlocci/familycastel/blob/main/docs/INSTALL.md" rel="noopener noreferrer">Install guide</a></li>
+    <li><a href="https://github.com/robertobarlocci/familycastel/blob/main/SECURITY.md" rel="noopener noreferrer">Security policy</a></li>
+    <li><a href="https://github.com/robertobarlocci/familycastel/blob/main/LICENSE" rel="noopener noreferrer">Licence</a></li>
+  </ul>
+  <p class="credits">
+    Fredoka and Nunito under the SIL Open Font License 1.1. Bundled with the app:
+    qrcode.js (MIT) and canvas-confetti (ISC). All the castle and stadium artwork is original.
+  </p>
+</footer>
+
+</body>
+</html>
