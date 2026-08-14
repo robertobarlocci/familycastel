@@ -1,0 +1,98 @@
+name: Pages
+
+# Publishes the landing page in site/ to GitHub Pages.
+#
+# The site is assembled rather than copied verbatim: site/ holds the page and its
+# own assets, and the product screenshots come from docs/screenshots/, which the
+# CI e2e job regenerates from the demo family. Keeping them in one place means the
+# marketing screenshots can never drift from the product.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/screenshots/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Floor for the whole workflow; the write scopes live on the deploy job alone, so
+# the job that runs composer never holds a Pages or OIDC token.
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # The gate. ci.yml and this workflow are separate, and the repository ruleset
+  # sets no required status checks — so without this, a merge could publish a page
+  # whose SEO contract is failing while the red run sat in a workflow nobody reads.
+  verify:
+    name: Landing page contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dev dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: The landing page must keep its promises
+        run: vendor/bin/phpunit --filter=LandingPageSeo --no-coverage
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          # `site/.` copies the CONTENTS. `cp -R site _site/` would publish
+          # _site/site/index.html — a 404 at the site root that looks fine in the log.
+          cp -R site/. _site/
+          mkdir -p _site/screens
+          cp docs/screenshots/*.png _site/screens/
+
+          # Assert the SHAPE of what is about to be published. A half-finished copy,
+          # an empty stylesheet or a missing screenshots directory must fail here,
+          # not become a live unstyled page.
+          for required in index.html styles.css robots.txt sitemap.xml \
+                          icons/icon.svg icons/icon-192.png icons/icon-512.png; do
+            test -s "_site/$required" || { echo "missing or empty: $required" >&2; exit 1; }
+          done
+          # .nojekyll is a marker and is conventionally EMPTY, so it is the one file
+          # that must be checked for existence rather than for size.
+          test -f _site/.nojekyll || { echo "missing: .nojekyll" >&2; exit 1; }
+          test "$(ls _site/fonts/*.woff2 | wc -l)" -eq 5
+          test "$(ls _site/screens/*.png | wc -l)" -ge 10
+
+          echo "assembled $(find _site -type f | wc -l) files"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

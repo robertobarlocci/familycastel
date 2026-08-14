@@ -1,0 +1,322 @@
+/* Family Castel — the landing page.
+
+   Everything here is the product's own visual language: the installer's dusk
+   gradient, the app's palette and type, and its flat-offset "pressable" shadows.
+   No framework, no build step, no third-party request — the whole page is served
+   from this origin, which is also the promise the product makes about itself. */
+
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/fredoka-600.woff2') format('woff2'); }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/fredoka-700.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/nunito-400.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/nunito-700.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 800; font-display: swap; src: url('fonts/nunito-800.woff2') format('woff2'); }
+
+:root {
+    --ink: #2c2a3a;
+    --ink-soft: #6a6782;
+    --paper: #f7f4ec;
+    --card: #fffdf8;
+    --brand: #f6b93b;
+    --brand-edge: #c98d10;
+    --green: #58cc02;
+    --green-edge: #46a302;
+    --blue: #1cb0f6;
+    --navy: #2b2f6b;
+    --violet: #7a4ea3;
+    --peach: #f0a06a;
+    --pink: #ff7ab2;
+    --radius: 20px;
+}
+
+* { box-sizing: border-box; }
+
+html { overflow-x: clip; scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-weight: 400;
+    font-size: clamp(1rem, .96rem + .2vw, 1.08rem);
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+}
+
+h1, h2, h3, .brand-word, .pronounce-word, .big-answer {
+    font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: .01em;
+}
+
+img { max-width: 100%; height: auto; }
+
+a { color: #4a44a8; }
+a:focus-visible, .btn:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+.skip {
+    position: absolute; left: -9999px; top: 0; z-index: 99;
+    background: #fff; color: var(--navy); font-weight: 800;
+    padding: .7rem 1rem; border-radius: 0 0 12px 0;
+}
+.skip:focus { left: 0; }
+
+/* ---------- hero: the installer's dusk gradient, the product's first impression ---------- */
+
+.hero {
+    position: relative;
+    color: #fff;
+    background: linear-gradient(180deg, var(--navy) 0%, var(--violet) 70%, var(--peach) 100%);
+    padding: 0 0 clamp(3.5rem, 9vw, 6rem);
+    overflow: hidden;
+}
+
+.topnav {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .8rem 1.4rem;
+    max-width: 68rem; margin: 0 auto;
+    padding: 1.1rem clamp(1rem, 4vw, 2rem);
+}
+
+.brand { display: inline-flex; align-items: center; gap: .6rem; }
+.brand-mark { width: 40px; height: 40px; border-radius: 12px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
+.brand-word { font-size: 1.25rem; font-weight: 700; letter-spacing: .03em; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+
+.topnav-links { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; list-style: none; margin: 0; padding: 0; }
+.topnav-links a {
+    color: rgba(255,255,255,.88); text-decoration: none; font-weight: 700; font-size: .95rem;
+    padding: .45rem .2rem; display: inline-block; min-height: 44px; line-height: 2.1;
+}
+.topnav-links a:hover { color: #fff; }
+
+.hero-inner {
+    max-width: 52rem; margin: 0 auto;
+    padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem) 0;
+    text-align: center;
+}
+
+.eyebrow {
+    font-weight: 800; font-size: .82rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--brand); margin: 0 0 .9rem;
+}
+
+.hero h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2.1rem, 1.2rem + 4.4vw, 4rem);
+    text-shadow: 0 4px 18px rgba(0,0,0,.35);
+}
+
+.lead {
+    margin: 0 auto 1.6rem; max-width: 40rem;
+    font-size: clamp(1.05rem, 1rem + .4vw, 1.22rem);
+    color: rgba(255,255,255,.94);
+}
+.lead strong { color: var(--brand); font-weight: 800; }
+
+.hero-note { margin: 1.1rem 0 0; font-size: .92rem; font-weight: 700; color: rgba(255,255,255,.75); }
+
+.cta-row { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; margin: 0; }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 52px; padding: .8rem 1.4rem;
+    font-family: inherit; font-size: 1.05rem; font-weight: 800;
+    border: 0; border-radius: 14px; text-decoration: none;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+/* Ink on the brand green, not white: white on #58cc02 is 2.09:1, which fails WCAG AA
+   badly for a call to action. Ink (#2c2a3a) on the same green is 6.7:1, so the brand
+   colour is kept exactly and only the text colour changes. */
+.btn-primary { background: var(--green); color: var(--ink); box-shadow: 0 5px 0 var(--green-edge); }
+.btn-primary:active { transform: translateY(5px); box-shadow: 0 0 0 var(--green-edge); }
+
+/* The secondary button defaults to the LIGHT-section treatment (the app's own
+   .btn-secondary: ink on lavender, 11.8:1). It used to be white-on-translucent
+   everywhere, which is invisible on the cream sections — 1.1:1 against --paper. */
+.btn-ghost { background: #eceafd; color: var(--ink); box-shadow: 0 5px 0 #d9d5f2; }
+.btn-ghost:active { transform: translateY(5px); box-shadow: 0 0 0 #d9d5f2; }
+
+/* On the dark sections it becomes a white-on-dark pill. It DARKENS rather than
+   lightens, because the hero is a gradient: a 14% white wash reads 8:1 over the navy
+   at the top but only 1.9:1 over the peach at the bottom, so a lightening overlay
+   fails wherever the button happens to land. Darkening by 48% clears AA on every
+   band of the gradient (worst case 5.8:1). */
+.hero .btn-ghost,
+.section-dark .btn-ghost {
+    background: rgba(20,18,40,.48); color: #fff; box-shadow: 0 5px 0 rgba(0,0,0,.28);
+}
+.hero .btn-ghost:active,
+.section-dark .btn-ghost:active { box-shadow: 0 0 0 rgba(0,0,0,.18); }
+
+.hero-stats {
+    display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center;
+    margin: clamp(2rem, 5vw, 3rem) auto 0; padding: 0 1rem; max-width: 44rem;
+}
+.chip {
+    background: rgba(255,255,255,.94); color: var(--ink);
+    border-radius: 999px; padding: .45rem 1rem; font-weight: 800; font-size: .95rem;
+    box-shadow: 0 4px 0 rgba(0,0,0,.18);
+}
+.chip-coin { background: #fff7e0; }
+.chip-xp { background: #f3edff; }
+.chip-level { background: #eef7ff; }
+
+/* ---------- sections ---------- */
+
+.section {
+    max-width: 68rem; margin: 0 auto;
+    padding: clamp(3rem, 7vw, 5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.section h2 {
+    margin: 0 0 .5rem;
+    font-size: clamp(1.6rem, 1.2rem + 1.8vw, 2.4rem);
+}
+
+.section-lead { margin: 0 0 2rem; font-size: 1.1rem; color: var(--ink-soft); font-weight: 700; max-width: 44rem; }
+
+.section-tint { max-width: none; background: #f1ecfb; }
+.section-tint > * { max-width: 68rem; margin-left: auto; margin-right: auto; }
+
+.section-dark {
+    max-width: none; color: #fff;
+    background: linear-gradient(160deg, var(--navy) 0%, var(--violet) 100%);
+}
+.section-dark > * { max-width: 68rem; margin-left: auto; margin-right: auto; }
+.section-dark .section-lead { color: rgba(255,255,255,.85); }
+
+/* ---------- how it works ---------- */
+
+.steps {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    gap: 1rem; list-style: none; margin: 0; padding: 0;
+    counter-reset: step;
+}
+.step {
+    position: relative; counter-increment: step;
+    background: var(--card); border: 2px solid #eee9dc; border-radius: var(--radius);
+    padding: 1.4rem 1.2rem 1.2rem;
+    box-shadow: 0 5px 0 rgba(0,0,0,.07);
+}
+.step::before {
+    content: counter(step);
+    position: absolute; top: -.9rem; left: 1.2rem;
+    display: grid; place-items: center;
+    width: 2rem; height: 2rem; border-radius: 999px;
+    background: var(--brand); color: #4a3403;
+    font-weight: 800; font-size: .95rem;
+    box-shadow: 0 3px 0 var(--brand-edge);
+}
+.step-emoji { display: block; font-size: 2rem; line-height: 1; margin-bottom: .4rem; }
+.step h3 { margin: 0 0 .35rem; font-size: 1.15rem; }
+.step p { margin: 0; color: var(--ink-soft); font-weight: 700; font-size: .96rem; }
+
+/* ---------- the name ---------- */
+
+.castel-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(1.2rem, 4vw, 2.6rem); align-items: start; }
+.big-answer { font-size: clamp(1.3rem, 1.1rem + 1vw, 1.8rem); margin: 0 0 1rem; color: var(--brand); }
+.section-dark p { color: rgba(255,255,255,.92); }
+.section-dark em { color: var(--brand); font-style: italic; }
+.aside {
+    margin-top: 1.4rem; padding: 1rem 1.2rem;
+    border-left: 4px solid var(--brand); border-radius: 0 14px 14px 0;
+    background: rgba(255,255,255,.08); font-size: .97rem;
+}
+
+.pronounce {
+    background: var(--card); color: var(--ink);
+    border-radius: var(--radius); padding: 1.6rem 1.3rem; text-align: center;
+    box-shadow: 0 8px 0 rgba(0,0,0,.22), 0 20px 40px rgba(0,0,0,.25);
+}
+.pronounce-word { margin: 0; font-size: 1.5rem; }
+.pronounce-say { margin: .3rem 0 0; font-size: 1.15rem; font-weight: 800; color: var(--violet); }
+.pronounce-hint { margin: .6rem 0 0; font-weight: 800; font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.pronounce-foot { margin: 1rem 0 0; font-size: .9rem; color: var(--ink-soft); font-weight: 700; }
+
+/* ---------- screenshots ---------- */
+
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); gap: 1.2rem; margin: 0 0 2rem; }
+.shots-two { grid-template-columns: repeat(auto-fit, minmax(min(21rem, 100%), 1fr)); }
+.shots figure { margin: 0; }
+.shots img {
+    width: 100%; display: block;
+    border-radius: 16px; border: 2px solid rgba(0,0,0,.08);
+    box-shadow: 0 8px 24px rgba(20,18,40,.18);
+    background: var(--card);
+}
+.shots figcaption { margin-top: .6rem; font-size: .92rem; font-weight: 700; color: var(--ink-soft); }
+
+/* ---------- feature lists ---------- */
+
+.feature-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.feature-list li {
+    background: var(--card); border-radius: 14px; border: 2px solid #eee9dc;
+    padding: .9rem 1.1rem; font-size: .98rem;
+}
+.feature-list strong { font-weight: 800; }
+
+/* ---------- install ---------- */
+
+.install-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: clamp(1.2rem, 4vw, 2.4rem); align-items: start; margin-bottom: 2rem; }
+
+.install-steps { margin: 0; padding-left: 1.3rem; display: grid; gap: .7rem; font-weight: 700; }
+.install-steps li::marker { color: var(--violet); font-weight: 800; }
+
+.req-card {
+    background: var(--card); border-radius: var(--radius); border: 2px solid #eee9dc;
+    padding: 1.3rem; box-shadow: 0 5px 0 rgba(0,0,0,.07);
+}
+.req-card h3 { margin: 0 0 .8rem; font-size: 1.1rem; }
+.reqs { margin: 0 0 1rem; display: grid; grid-template-columns: auto 1fr; gap: .35rem .9rem; }
+.reqs dt { font-weight: 800; font-size: .88rem; color: var(--ink-soft); }
+.reqs dd { margin: 0; font-weight: 700; }
+.req-note { margin: 0; font-size: .9rem; color: var(--ink-soft); font-weight: 700; }
+
+/* ---------- faq ---------- */
+
+details {
+    background: var(--card); border: 2px solid #e3ddf5; border-radius: 14px;
+    padding: .2rem 1.1rem; margin-bottom: .7rem;
+}
+details[open] { border-color: var(--violet); }
+summary {
+    cursor: pointer; font-weight: 800; font-size: 1.02rem;
+    padding: .85rem 0; min-height: 44px; list-style-position: inside;
+}
+details p { margin: 0 0 1rem; color: var(--ink-soft); font-weight: 700; }
+
+/* ---------- closing + footer ---------- */
+
+.closing { text-align: center; }
+.closing .section-lead { margin-left: auto; margin-right: auto; }
+
+.footer {
+    background: var(--navy); color: rgba(255,255,255,.8);
+    padding: clamp(2.5rem, 6vw, 3.5rem) clamp(1rem, 4vw, 2rem);
+    text-align: center; font-size: .95rem;
+}
+.footer p { max-width: 44rem; margin: 0 auto 1rem; }
+.footer-brand { font-family: 'Fredoka', 'Nunito', sans-serif; font-size: 1.3rem; font-weight: 700; color: #fff; }
+.footer a { color: var(--brand); font-weight: 700; }
+.footer-links { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; justify-content: center; list-style: none; margin: 0 0 1.4rem; padding: 0; }
+.footer-links a { display: inline-block; min-height: 44px; line-height: 2.6; }
+.credits { font-size: .84rem; color: rgba(255,255,255,.55); }
+
+/* ---------- narrow phones ---------- */
+
+@media (max-width: 720px) {
+    .castel-grid, .install-grid { grid-template-columns: 1fr; }
+    .topnav { justify-content: center; }
+    .topnav-links { justify-content: center; }
+    .btn { width: 100%; }
+    .cta-row { flex-direction: column; align-items: stretch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

@@ -7,6 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [0.1.5] - 2026-08-11
 
+### Added
+- **Family Castel has a website.** [robertobarlocci.github.io/familycastel](https://robertobarlocci.github.io/familycastel/)
+  explains what it is, how Coins, XP and Sidequests fit together, and exactly what your web
+  hosting needs — and it finally answers the question everybody asks first: why "Castel" and
+  not "Castle". Nothing about the app itself changed; the site is not part of the download.
+
 ### Fixed
 - **The quick actions on a child's page keep their titles readable on a phone.** Each
   button now sets its own text colour instead of leaving it to the phone's browser, so a
