@@ -5,6 +5,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-11
+
+### Fixed
+- **The quick actions on a child's page keep their titles readable on a phone.** Each
+  button now sets its own text colour instead of leaving it to the phone's browser, so a
+  dark theme, a high-contrast setting or a browser that darkens websites by itself can no
+  longer wash the title out and leave only the Coins and XP behind. Very long titles now
+  wrap onto a second line instead of being cut off at the edge of the button.
+
 ## [0.1.4] - 2026-08-10
 
 Stay signed in. Parents and children no longer have to type a password or PIN
