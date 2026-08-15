@@ -353,3 +353,25 @@ body:has(.cookie-notice) .install-wrap { padding-bottom: 13rem; }
     .install-actions > * { width: 100%; }
     .template-grid, .child-grid { grid-template-columns: 1fr; }
 }
+
+/* Minuspunkte — the penalty page and the photo a child sees in the journal.
+   Both rules that paint a surface also set a colour: a control must own its
+   foreground, because a <button>/<img> box against a UA-chosen colour is what
+   made issue #15 look like missing content. */
+.penalty-thumb {
+    width: 72px; height: 72px; flex: 0 0 auto;
+    object-fit: cover; border-radius: 12px;
+    border: 1px solid #d9d5f2; background: #eceafd;
+}
+.penalty-card .list-card-body { min-width: 0; }
+.penalty-card strong { overflow-wrap: anywhere; }
+.penalty-form .field-photo input[type="file"] { font: inherit; color: var(--ink); }
+
+/* max-width + height:auto is what stops a 4000px phone photo from widening the
+   article — html{overflow-x:clip} would otherwise HIDE the overflow silently,
+   so no viewport-overflow assertion could ever see it. */
+.journal-photo {
+    display: block; max-width: 100%; height: auto;
+    margin-top: .5rem; border-radius: 12px;
+    background: #eceafd;
+}

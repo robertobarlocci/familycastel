@@ -46,6 +46,7 @@ $currentAttr = static fn (string $path, bool $prefix = false): string => $isCurr
             <a href="<?= e(url('/parent/milestones')) ?>"<?= $currentAttr('/parent/milestones', true) ?>><span class="nav-icon" aria-hidden="true">🏆</span><span><?= e(t('nav.milestones')) ?></span></a>
             <a href="<?= e(url('/parent/children')) ?>"<?= $currentAttr('/parent/children', true) ?>><span class="nav-icon" aria-hidden="true">🧒</span><span><?= e(t('nav.children')) ?></span></a>
             <a href="<?= e(url('/parent/templates')) ?>"<?= $currentAttr('/parent/templates', true) ?>><span class="nav-icon" aria-hidden="true">⭐</span><span><?= e(t('nav.templates')) ?></span></a>
+            <a href="<?= e(url('/parent/penalties')) ?>"<?= $currentAttr('/parent/penalties', true) ?>><span class="nav-icon" aria-hidden="true">⛔</span><span><?= e(t('nav.penalties')) ?></span></a>
             <a href="<?= e(url('/parent/settings/status')) ?>"<?= $currentAttr('/parent/settings/status') ?>><span class="nav-icon" aria-hidden="true">🩺</span><span><?= e(t('nav.system')) ?></span></a>
             <a href="<?= e(url('/parent/settings/updates')) ?>" class="nav-updates"<?= $currentAttr('/parent/settings/updates') ?>><span class="nav-icon" aria-hidden="true">🔄</span><span><?= e(t('ops.updates_title')) ?></span><span class="nav-version">v<?= e(FC_VERSION) ?></span></a>
         </nav>

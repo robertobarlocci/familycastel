@@ -72,11 +72,11 @@ test.describe('mobile parent navbar', () => {
 
     const menu = page.locator('#parent-menu');
     await expect(menu).toBeVisible();
-    await expect(menu.locator('.topbar-nav a')).toHaveCount(9);
+    await expect(menu.locator('.topbar-nav a')).toHaveCount(10);
 
     for (const label of [
       'Übersicht', 'Genehmigungen', 'Sidequests', 'Belohnungen', 'Meilensteine',
-      'Kinder', 'Vorlagen', 'System', 'Updates',
+      'Kinder', 'Vorlagen', 'Minuspunkte', 'System', 'Updates',
     ]) {
       await expect(menu.getByRole('link', { name: new RegExp(label) })).toBeVisible();
     }

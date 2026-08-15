@@ -5,6 +5,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-14
+
+### Added
+- **Minuspunkte — consequences you can explain.** Deducting Coins was always possible from a
+  child's page, but it was buried behind ten positive quick actions and it could only ever be
+  text. There is now a **Minuspunkte** entry in the menu (and in the burger menu on a phone)
+  that goes straight to it: pick the child, say what happened, choose how many Coins, and —
+  the point of the whole thing — **attach a photo**. The unmade bed, the light left on, the
+  homework still on the table. Your child opens their Journal and sees the picture next to
+  the entry, so "−1 Coin" becomes something they can actually learn from instead of something
+  that just happened to them.
+- Photos are stored **on your own server**, in the same place your backups already protect.
+  Nothing is uploaded anywhere else, nothing is shared, and only your family can open them —
+  they are not reachable on the web even if somebody guesses the address.
+
 ## [0.1.5] - 2026-08-11
 
 ### Added
