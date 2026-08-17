@@ -5,6 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Versioning: [SemVer](
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-17
+
+### Added
+- **Your child can see that something happened — every time, not just sometimes.** Until now
+  the confetti only appeared when a new achievement was unlocked. Award Coins with a quick
+  action or with "Eigene Aktion" and, as far as your child's screen was concerned, nothing
+  happened at all: the points were simply there the next time they counted them. Now **every**
+  positive moment celebrates — a Sidequest you approved, a quick action, a custom award, XP on
+  its own — the next time your child opens their castle.
+- **And a Minuspunkt is finally visible too.** A dark cloud rolls in and rains for a couple of
+  seconds, then clears by itself. Losing Coins was the one thing in the whole app that happened
+  in silence, which made it feel like something that was done *to* your child rather than
+  something that happened. Now it lands, it is over quickly, and the Journal explains it.
+  Redeeming a reward they saved up for does **not** rain — that is your child spending what
+  they earned, and it should feel like a good day.
+- **A little mark on the Journal when there is something new in it.** A red badge on the
+  Journal button counts what your child has not looked at yet, and disappears once they have.
+  No more "did you see you got Coins for the dishes?" — they can see it themselves.
+- Both effects respect the phone's "reduce motion" setting, and neither makes a sound.
+
 ## [0.1.6] - 2026-08-14
 
 ### Added

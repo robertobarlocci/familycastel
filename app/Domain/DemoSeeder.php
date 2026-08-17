@@ -163,6 +163,19 @@ final class DemoSeeder
         $achievements->markSeen($emma);
         $achievements->markSeen($noah);
 
+        // Same reasoning one level over: the seeded story is three weeks of
+        // history, not news. Without this the child's first login greets them
+        // with confetti, a rain cloud AND a "99+" Journal badge for events that
+        // are backdated to last month — and the CI screenshot job, which runs
+        // first against the pristine seed, would capture a rain cloud on every
+        // shot.
+        $this->db->execute(
+            'UPDATE transactions
+                SET celebrated_at = created_at, journal_seen_at = created_at
+              WHERE child_id IN (?, ?)',
+            [$emma, $noah]
+        );
+
         return true;
     }
 

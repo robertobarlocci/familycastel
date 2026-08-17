@@ -7,9 +7,11 @@ namespace FamilyCastel\Http\Kid;
 use FamilyCastel\Core\Auth;
 use FamilyCastel\Core\Csrf;
 use FamilyCastel\Core\Db;
+use FamilyCastel\Core\Request;
 use FamilyCastel\Core\Session;
 use FamilyCastel\Core\View;
 use FamilyCastel\Domain\AchievementService;
+use FamilyCastel\Domain\CelebrationService;
 use FamilyCastel\Domain\InsufficientCoinsException;
 use FamilyCastel\Domain\JournalService;
 use FamilyCastel\Domain\LedgerService;
@@ -48,6 +50,40 @@ final class KidController
         'striker' => '👟', 'goalkeeper' => '🧤', 'defender' => '💪', 'midfielder' => '🎯',
     ];
 
+    /**
+     * How many Journal entries this child has not looked at yet, for the dock
+     * badge. Decoration: it must never break a page, so a closed write gate or
+     * any other failure reports "nothing new" rather than a 500 — the same
+     * stance the parent header takes around its own badge.
+     */
+    private function journalUnseen(): int
+    {
+        try {
+            return (new JournalService($this->db))->unseenCount($this->childId());
+        } catch (\Throwable $e) {
+            $this->logDecorationFailure('journal badge unavailable', $e);
+
+            return 0;
+        }
+    }
+
+    /**
+     * Record a failure in the feedback layer without failing the page.
+     *
+     * The whole celebration/badge feature is decoration on top of the Journal,
+     * which keeps every entry forever (INV-001), so nothing is lost when it
+     * degrades. But it must not degrade SILENTLY: a badge stuck at 0 because a
+     * query is broken looks exactly like a badge that is correctly 0.
+     */
+    private function logDecorationFailure(string $what, \Throwable $e): void
+    {
+        @file_put_contents(
+            FC_ROOT . '/storage/logs/app.log',
+            gmdate('c') . ' ' . $what . ': ' . $e->getMessage() . PHP_EOL,
+            FILE_APPEND
+        );
+    }
+
     public function home(): string
     {
         $child = $this->child();
@@ -60,7 +96,41 @@ final class KidController
 
         // Celebration queue: unseen achievement unlocks celebrate ONCE —
         // read-and-consume is atomic (concurrent loads can't double-fire).
+        //
+        // Deliberately left exactly as it has always been, and NOT given the
+        // navigation guard or the decoration-failure catch that the transaction
+        // feedback below has. Both gaps are real — a prefetch can eat an unlock,
+        // and a transient write failure here still 500s the page — but they are
+        // pre-existing and live in the achievements path, so fixing them means
+        // touching that path and its tests. Tracked as issue #22 together with
+        // the unbounded-UPDATE bug in takeUnseen() itself. The asymmetry below
+        // is on purpose; it is not an oversight.
         $celebrations = $achievements->takeUnseen($this->childId());
+
+        // The SECOND celebration source, next to achievements: the Coin/XP
+        // events themselves. Every award, deduction, approval and correction
+        // goes through the ledger (INV-002), so consuming transactions is what
+        // makes ALL of them produce feedback — an "Eigene Aktion" award as much
+        // as a Sidequest approval — instead of only the paths somebody
+        // remembered to wire up.
+        $feedback = ['positive' => false, 'negative' => false];
+        if (Request::isUserNavigation()) {
+            try {
+                $feedback = CelebrationService::feedbackFor(
+                    (new CelebrationService($this->db))->takeUncelebrated($this->childId())
+                );
+            } catch (\Throwable $e) {
+                // A backup or restore is running (WriteLockedException), or the
+                // seen-state columns are missing because migration 008 has not
+                // run yet on a hand-updated install, or the write simply fails.
+                // In every case the events keep their NULL marks and celebrate
+                // on the next visit. This is DECORATION: it must never be able
+                // to turn a child's castle into a 500, so the catch is broad on
+                // purpose — and logged, so a permanently silent celebration is
+                // distinguishable from a correctly quiet one.
+                $this->logDecorationFailure('celebration unavailable', $e);
+            }
+        }
 
         $level = (int) $child['level'];
 
@@ -71,6 +141,8 @@ final class KidController
             'milestones' => (new MilestoneService($this->db))->activeFor($this->childId()),
             'openQuests' => count((new SidequestService($this->db))->availableFor($this->childId())),
             'celebrations' => $celebrations,
+            'feedback' => $feedback,
+            'journalUnseen' => $this->journalUnseen(),
             'worldTier' => \FamilyCastel\Domain\ThemeService::worldTier($level),
             'nextTierLevel' => \FamilyCastel\Domain\ThemeService::nextWorldTierLevel($level),
             'titleKey' => \FamilyCastel\Domain\ThemeService::titleKey((string) $child['theme'], $level),
@@ -87,6 +159,7 @@ final class KidController
         return $this->view->render('kid/settings', [
             'child' => $child,
             'allowedThemes' => \FamilyCastel\Domain\ThemeService::allowedThemes($child['allowed_themes']),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 
@@ -125,6 +198,7 @@ final class KidController
             'child' => $this->child(),
             'available' => $quests->availableFor($this->childId()),
             'claims' => $quests->claimsFor($this->childId(), 30),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 
@@ -212,6 +286,7 @@ final class KidController
             'available' => (new LedgerService($this->db))->availableBalance($this->childId()),
             'catalog' => $rewards->activeRewards(),
             'requests' => $rewards->forChild($this->childId(), 20),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 
@@ -281,6 +356,7 @@ final class KidController
                 'SELECT * FROM milestone_requests WHERE child_id = ? ORDER BY id DESC LIMIT 10',
                 [$this->childId()]
             ),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 
@@ -311,6 +387,7 @@ final class KidController
         return $this->view->render('kid/achievements', [
             'child' => $this->child(),
             'achievements' => (new AchievementService($this->db))->allWithState($this->childId()),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 
@@ -321,11 +398,30 @@ final class KidController
             $filter = 'all';
         }
 
+        $journal = new JournalService($this->db);
+
+        // Clear the "something new" mark only when the child has actually been
+        // shown everything: the unfiltered view, opened deliberately. A filtered
+        // view would hide the very entries the badge was pointing at, and a
+        // prefetch is not a visit. The dock link carries no filter, so tapping
+        // the badge always clears it.
+        if ($filter === 'all' && Request::isUserNavigation()) {
+            try {
+                $journal->markSeen($this->childId());
+            } catch (\Throwable $e) {
+                // Maintenance, a missing column on a hand-updated install, or a
+                // transient write failure. Reading the Journal is the point of
+                // this page — it must still render; the badge simply stays.
+                $this->logDecorationFailure('journal mark-seen failed', $e);
+            }
+        }
+
         return $this->view->render('kid/journal', [
             'child' => $this->child(),
             'filter' => $filter,
             'filters' => JournalService::FILTERS,
-            'entries' => (new JournalService($this->db))->entries($this->childId(), $filter),
+            'entries' => $journal->entries($this->childId(), $filter),
+            'journalUnseen' => $this->journalUnseen(),
         ], 'layouts/kid');
     }
 

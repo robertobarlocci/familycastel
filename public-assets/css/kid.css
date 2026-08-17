@@ -153,18 +153,108 @@ body.kid-app.theme-football {
     box-shadow: 0 -8px 24px rgba(0,0,0,.22);
 }
 .kid-nav-item {
+    position: relative;
     display: flex; flex-direction: column; align-items: center; gap: .1rem;
     color: rgba(255,255,255,.78); text-decoration: none; font-size: clamp(.58rem, 2.5vw, .7rem); font-weight: 800;
     min-width: 0; min-height: 52px; padding: .2rem .1rem; border-radius: 12px; justify-content: center;
     overflow: hidden;
+}
+/* "Something new in your Journal". Same visual language as .kid-tile-badge,
+   sized down for a 52px dock item and positioned inside the item's box so the
+   existing overflow: hidden cannot clip it. It declares its own `color` next to
+   its `background`: an app-styled control owns its foreground, or a
+   forced-colors / auto-dark environment moves the two apart (ARCHITECTURE
+   v0.1.5, issue #16). */
+.kid-nav-badge {
+    position: absolute; top: .15rem; right: .35rem;
+    background: #e05260; color: #fff;
+    font-weight: 800; font-size: .62rem; line-height: 1;
+    border-radius: 999px; min-width: 1.05rem; height: 1.05rem;
+    display: grid; place-items: center; padding: 0 .22rem;
 }
 .kid-nav-item span:last-child { display: block; width: 100%; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .kid-nav-item span[aria-hidden] { font-size: 1.3rem; }
 .kid-nav-item[aria-current="page"] { color: #fff; background: rgba(255,255,255,.14); }
 .kid-nav-item:focus-visible { outline: 3px solid #ffe29a; outline-offset: -2px; }
 
+/* ---------- consequence feedback: a dark cloud that rains ----------
+   The negative counterpart to the confetti. Pure CSS, because the CSP ships
+   style-src 'self' with no 'unsafe-inline', so nothing here may come from an
+   inline style attribute — the drop stagger lives in :nth-child() rules.
+   pointer-events: none throughout, so it can never intercept a tap. */
+.rain-fx {
+    position: fixed; inset: 0; z-index: 90;
+    pointer-events: none;
+    overflow: hidden;
+    /* A gloom wash. Without it the drops disappear into the world art behind
+       them (measured: the first version was legible only against the sky), and
+       the moment reads as "a cloud drifted past" rather than "this is about
+       you". It carries the whole scene's fade, so it also guarantees the
+       screen returns to normal even if a child's browser skips the drops. */
+    background: radial-gradient(120% 70% at 50% 0%, rgba(18,20,38,.62), rgba(18,20,38,.28) 70%, rgba(18,20,38,0));
+    animation: fc-rain-scene 2.6s ease forwards;
+}
+/* Drawn, not an emoji: ☁️/🌧️ render LIGHT on most platforms, and the point of
+   this cloud is that it is dark. Three lobes, because two read as a pair of
+   blobs rather than as a cloud. */
+.rain-cloud {
+    position: absolute; top: 11%; left: 50%; margin-left: -5.75rem;
+    width: 11.5rem; height: 3.2rem;
+    background: #363e57; border-radius: 2.6rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,.45);
+    animation: fc-rain-cloud-in .5s ease-out both;
+}
+.rain-cloud::before, .rain-cloud::after {
+    content: ''; position: absolute; background: #3f4964; border-radius: 50%;
+}
+.rain-cloud::before { width: 5rem; height: 5rem; top: -2.4rem; left: 1.1rem; }
+.rain-cloud::after  { width: 3.8rem; height: 3.8rem; top: -1.7rem; right: 1.2rem; }
+
+.rain-drop {
+    position: absolute; top: 17%;
+    width: 4px; height: 1.35rem;
+    background: linear-gradient(rgba(214,232,255,0), rgba(214,232,255,1));
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(190,214,255,.55);
+    animation: fc-rain-drop .9s linear infinite;
+}
+.rain-drop:nth-child(2)  { left: calc(50% - 4.9rem); animation-delay: .00s; }
+.rain-drop:nth-child(3)  { left: calc(50% - 4.0rem); animation-delay: .32s; }
+.rain-drop:nth-child(4)  { left: calc(50% - 3.1rem); animation-delay: .12s; }
+.rain-drop:nth-child(5)  { left: calc(50% - 2.2rem); animation-delay: .55s; }
+.rain-drop:nth-child(6)  { left: calc(50% - 1.3rem); animation-delay: .22s; }
+.rain-drop:nth-child(7)  { left: calc(50% - 0.4rem); animation-delay: .68s; }
+.rain-drop:nth-child(8)  { left: calc(50% + 0.5rem); animation-delay: .05s; }
+.rain-drop:nth-child(9)  { left: calc(50% + 1.4rem); animation-delay: .45s; }
+.rain-drop:nth-child(10) { left: calc(50% + 2.3rem); animation-delay: .18s; }
+.rain-drop:nth-child(11) { left: calc(50% + 3.2rem); animation-delay: .60s; }
+.rain-drop:nth-child(12) { left: calc(50% + 4.1rem); animation-delay: .28s; }
+.rain-drop:nth-child(13) { left: calc(50% + 5.0rem); animation-delay: .74s; }
+
+@keyframes fc-rain-scene {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    82%  { opacity: 1; }
+    /* Ends INVISIBLE and out of the way. celebrate.js also removes the node
+       after 3s; either teardown alone has a failure mode, so both ship. */
+    100% { opacity: 0; visibility: hidden; }
+}
+@keyframes fc-rain-cloud-in {
+    from { transform: translateY(-2.4rem) scale(.9); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+}
+@keyframes fc-rain-drop {
+    0%   { transform: translateY(0); opacity: 0; }
+    12%  { opacity: 1; }
+    100% { transform: translateY(58vh); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    /* Explicit, rather than relying on the blanket rule above: a 0.01ms scene
+       would flash and jump. Same stance as the confetti's own
+       disableForReducedMotion. The Journal badge still reports the news. */
+    .rain-fx { display: none; }
 }
 
 /* ---------- game fonts + world scene (theme milestone) ---------- */
