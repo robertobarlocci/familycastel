@@ -31,6 +31,19 @@
     <?php endif; ?>
 </p>
 
+<?php /* Feedback for the Coin/XP events that happened while the child was away.
+         The negative side first, because celebrate.js plays the confetti AFTER the
+         rain when both are present — the screen they are left looking at is the
+         happy one. A DIFFERENT attribute from data-celebrate on purpose: sounds.js
+         plays its fanfare off that selector, and reusing it would add a sound to
+         every ordinary award, which this change never set out to do. */ ?>
+<?php if (!empty($feedback['negative'])): ?>
+    <?php require __DIR__ . '/../partials/_rain_cloud.php'; ?>
+<?php endif; ?>
+<?php if (!empty($feedback['positive'])): ?>
+    <div class="event-celebrate" data-celebrate-events="1" hidden></div>
+<?php endif; ?>
+
 <?php if (!empty($celebrations)): ?>
     <section class="celebration-card" data-celebrate="1">
         <h2>🏅 <?= e(t('kidhome.new_achievement')) ?></h2>

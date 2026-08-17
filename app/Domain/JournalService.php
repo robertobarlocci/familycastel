@@ -15,6 +15,13 @@ final class JournalService
 {
     public const FILTERS = ['all', 'earned', 'spent', 'deducted', 'pending', 'rejected', 'sidequests', 'rewards'];
 
+    /**
+     * Highest exact number the "something new" badge shows. Above it the badge
+     * renders UNSEEN_CAP . '+' and unseenCount() saturates at UNSEEN_CAP + 1 —
+     * one definition, mirrored in exactly one place (views/layouts/kid.php).
+     */
+    public const UNSEEN_CAP = 99;
+
     public function __construct(private readonly Db $db)
     {
     }
@@ -170,5 +177,63 @@ final class JournalService
         usort($entries, static fn (array $a, array $b) => strcmp($b['at'], $a['at']));
 
         return array_slice($entries, 0, $limit);
+    }
+
+    /**
+     * Unseen ledger entries, SATURATING at UNSEEN_CAP + 1.
+     *
+     * The return value is deliberately not the true count: it is
+     * min(actual, UNSEEN_CAP + 1). Exactly UNSEEN_CAP + 1 is the sentinel
+     * meaning "at least this many" and is what the layout renders as "99+";
+     * anything at or below the cap is exact. The LIMIT is what keeps the query
+     * off the whole ledger — a dock badge is a hint, not a report.
+     *
+     * Scoped to ledger rows only. The Journal also lists pending claims, reward
+     * requests, suggestions and wishes; giving those seen-state means
+     * seen-state on four more tables, which is a separate change.
+     */
+    public function unseenCount(int $childId): int
+    {
+        $row = $this->db->fetchOne(
+            'SELECT COUNT(*) AS c FROM (
+                SELECT 1 FROM transactions
+                 WHERE child_id = ? AND journal_seen_at IS NULL
+                 LIMIT ' . (self::UNSEEN_CAP + 1) . '
+             ) capped',
+            [$childId]
+        );
+
+        return (int) ($row['c'] ?? 0);
+    }
+
+    /**
+     * Mark this child's unseen ledger entries as looked-at.
+     *
+     * Chunked read-then-bounded-update, identical in shape (and for identical
+     * reasons) to CelebrationService::takeUncelebrated(): a broad
+     * `UPDATE ... WHERE journal_seen_at IS NULL` would mark a row inserted
+     * mid-flight, hiding a "there is something new" the child never saw.
+     */
+    public function markSeen(int $childId): void
+    {
+        WriteGate::transaction($this->db, function (Db $db) use ($childId): void {
+            for ($pass = 0; $pass < CelebrationService::MAX_CHUNKS; $pass++) {
+                $rows = $db->fetchAll(
+                    'SELECT id FROM transactions
+                      WHERE child_id = ? AND journal_seen_at IS NULL
+                      ORDER BY id LIMIT ' . CelebrationService::CHUNK . ' FOR UPDATE',
+                    [$childId]
+                );
+                if ($rows === []) {
+                    return;
+                }
+
+                CelebrationService::markRows($db, 'journal_seen_at', $rows);
+
+                if (count($rows) < CelebrationService::CHUNK) {
+                    return;
+                }
+            }
+        });
     }
 }

@@ -26,6 +26,16 @@ $kidCurrent = static function (string $path) use ($currentPath): string {
 
     return $active ? ' aria-current="page"' : '';
 };
+
+// Derived HERE rather than passed in: View::renderFile() extracts caller data
+// into this scope, so every name a view passes is effectively reserved (the
+// 2026-08-10 extract(EXTR_SKIP) lesson). A local the caller cannot populate
+// cannot collide. `?? 0` keeps a future kid page that forgets the key rendering
+// without a badge instead of warning.
+$journalUnseen = (int) ($journalUnseen ?? 0);
+$journalUnseenLabel = $journalUnseen > \FamilyCastel\Domain\JournalService::UNSEEN_CAP
+    ? \FamilyCastel\Domain\JournalService::UNSEEN_CAP . '+'
+    : (string) $journalUnseen;
 ?>
 <main class="kid-main">
     <?php foreach (\FamilyCastel\Core\Session::takeFlashes() as $flash): ?>
@@ -40,7 +50,13 @@ $kidCurrent = static function (string $path) use ($currentPath): string {
     <a href="<?= e(url('/kid/sidequests')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/sidequests') ?>><span aria-hidden="true">🗡️</span><span><?= e(t('kidnav.quests')) ?></span></a>
     <a href="<?= e(url('/kid/rewards')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/rewards') ?>><span aria-hidden="true">🎁</span><span><?= e(t('kidnav.rewards')) ?></span></a>
     <a href="<?= e(url('/kid/milestones')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/milestones') ?>><span aria-hidden="true">🏆</span><span><?= e(t('kidnav.milestones')) ?></span></a>
-    <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/journal') ?>><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
+<?php /* The badge is the FIRST child on purpose: `.kid-nav-item span:last-child` is a
+         descendant rule that stretches the label and gives it its ellipsis, and a badge
+         appended last would steal it. It is absolutely positioned, so order costs nothing
+         visually. No aria-hidden either — that selector sizes the emoji at 1.3rem. The
+         accessible name comes from aria-label on the link, so a screen reader says
+         "Journal — 3 neu" instead of "3 book Journal". */ ?>
+    <a href="<?= e(url('/kid/journal')) ?>" class="kid-nav-item"<?= $kidCurrent('/kid/journal') ?><?= $journalUnseen > 0 ? ' aria-label="' . eattr(t('kidnav.journal_new', ['count' => $journalUnseenLabel])) . '"' : '' ?>><?php if ($journalUnseen > 0): ?><span class="kid-nav-badge"><?= e($journalUnseenLabel) ?></span><?php endif; ?><span aria-hidden="true">📖</span><span><?= e(t('kidnav.journal')) ?></span></a>
 </nav>
 <?php require __DIR__ . '/../partials/_cookie_notice.php'; ?>
 <script src="<?= e(asset('/public-assets/js/progress.js')) ?>"></script>

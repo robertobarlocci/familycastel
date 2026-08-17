@@ -330,6 +330,7 @@ return [
     'kidnav.rewards' => 'Belohnungen',
     'kidnav.milestones' => 'Ziele',
     'kidnav.journal' => 'Journal',
+    'kidnav.journal_new' => 'Journal — {count} neu',
     'kidnav.achievements' => 'Erfolge',
 
     // Kid home
